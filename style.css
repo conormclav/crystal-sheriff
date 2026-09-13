@@ -235,6 +235,19 @@ main {
 .upg:not(.afford) { filter: saturate(0.35) brightness(0.6); }
 #noupg { color: #5a7182; font-size: 8px; padding: 4px 0; }
 
+/* click-power upgrades: gold ring + 👆 badge so it's obvious they raise /click */
+.upg.clickup { border-color: var(--yellow); box-shadow: 0 0 8px rgba(255, 210, 31, 0.45); }
+.upg.clickup.afford { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255, 210, 31, 0.7); }
+.clickbadge {
+  position: absolute; top: -7px; right: -7px;
+  font-size: 12px; line-height: 1;
+  background: var(--yellow); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 50%;
+  width: 20px; height: 20px; display: grid; place-items: center;
+  pointer-events: none;
+}
+.clicktag { color: var(--ink); background: var(--yellow); font-size: 8px; padding: 3px 6px; border-radius: 4px; margin: 4px 0; text-align: center; }
+
 /* buildings */
 .bld {
   width: 100%;

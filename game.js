@@ -640,6 +640,8 @@ const ACHIEVEMENTS = [
   { id: 'w5',   ico: '🔟', name: 'DECILLION. THE BIG ONE.', desc: '10^33. Teacher will not believe you.',    test: s => s.lifetimeTotal >= 1e33 },
 ];
 
+/** True for upgrades that raise your per-click power (shown with a 👆 badge). */
+function upgradeBoostsClick(u) { return u.type === 'click' || u.type === 'syn' || u.type === 'crit'; }
 function totalBuildings(s) { return BUILDINGS.reduce((n, b) => n + s.bld[b.id], 0); }
 function skinUnlocked(k, s) { return s.lifetimeTotal >= k.need && s.stars >= k.needStars; }
 
@@ -1787,11 +1789,13 @@ function rebuildShop(g) {
   }
   for (const u of avail.slice(0, 12)) {
     const btn = document.createElement('button');
-    btn.className = 'upg' + (s.crystals >= u.cost ? ' afford' : '');
+    const clicky = upgradeBoostsClick(u);
+    btn.className = 'upg' + (s.crystals >= u.cost ? ' afford' : '') + (clicky ? ' clickup' : '');
     const ic = iconCanvas(u.icon, 64);
     const cv = document.createElement('canvas'); cv.width = cv.height = 64;
     cv.getContext('2d').drawImage(ic, 0, 0);
     btn.appendChild(cv);
+    if (clicky) { const badge = document.createElement('span'); badge.className = 'clickbadge'; badge.textContent = '👆'; badge.title = 'Boosts per-click'; btn.appendChild(badge); }
     btn.addEventListener('click', () => { g.buyUpgrade(u.id); });
     attachTooltip(btn, () => {
       const eff = u.type === 'bld' ? BLD[u.bld].name + ' output ×' + u.mult
@@ -1805,7 +1809,8 @@ function rebuildShop(g) {
         : u.type === 'offline' ? 'Offline earnings: 90% for up to 14h'
         : u.type === 'bosses' ? 'Boss buildings ×2'
         : '';
-      return `<h4>${u.name}</h4><div class="info">${eff}</div><div class="flavor">“${u.flavor}”</div><div class="price${s.crystals >= u.cost ? '' : ' no'}">💎 ${fmt(u.cost)}</div>`;
+      const tag = clicky ? '<div class="clicktag">👆 BOOSTS PER-CLICK</div>' : '';
+      return `<h4>${u.name}</h4>${tag}<div class="info">${eff}</div><div class="flavor">“${u.flavor}”</div><div class="price${s.crystals >= u.cost ? '' : ' no'}">💎 ${fmt(u.cost)}</div>`;
     });
     dom.upgrades.appendChild(btn);
   }
