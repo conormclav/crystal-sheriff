@@ -765,12 +765,18 @@ class AudioMan {
   }
   startMusic() {
     if (!this.music || !this.unlocked || this.musicEl) return;
-    const el = new Audio(this.tracks[this.musicIdx % this.tracks.length]);
+    const idx = this.musicIdx % this.tracks.length;
+    const el = new Audio(this.tracks[idx]);
     el.volume = 0.32;
     el.addEventListener('ended', () => { this.musicEl = null; this.musicIdx++; this.startMusic(); });
-    el.play().catch(() => { this.musicEl = null; });
+    // if a track can't load or play, skip to the next one instead of going silent forever
+    const skip = () => { if (this.musicEl === el) { this.musicEl = null; this.musicIdx++; if (this.musicIdx % this.tracks.length !== idx) this.startMusic(); } };
+    el.addEventListener('error', skip);
+    el.play().catch(() => { this.musicEl = null; setTimeout(() => this.ensureMusic(), 400); });
     this.musicEl = el;
   }
+  /** Retry music if it should be playing but isn't — called on user gestures, so autoplay never traps it. */
+  ensureMusic() { if (this.music && this.unlocked && !this.musicEl) this.startMusic(); }
   stopMusic() { if (this.musicEl) { this.musicEl.pause(); this.musicEl = null; } }
   toggleMusic() { this.music = !this.music; this.music ? this.startMusic() : this.stopMusic(); return this.music; }
   sample(name, vol = 0.5) {
@@ -1795,7 +1801,7 @@ function drawBandit(ctx, b, t) {
 // ============================================================================
 const dom = {};
 function grabDom() {
-  for (const id of ['scene', 'stage', 'buffs', 'skinbar', 'upgrades', 'buildings', 'tooltip', 'toasts',
+  for (const id of ['scene', 'stage', 'buffs', 'skinbar', 'upgrades', 'clickupgrades', 'clickhead', 'buildings', 'tooltip', 'toasts',
     'stCrystals', 'stPow', 'stCps', 'stCpc', 'stHeight', 'stStars', 'twHeight', 'twStars', 'twClaim', 'twNext',
     'btnPrestige', 'statlist', 'achgrid', 'achCount', 'modalwrap', 'modal', 'buyamt',
     'btnSound', 'btnMusic', 'btnSave', 'btnWipe'])
@@ -1814,19 +1820,17 @@ function attachTooltip(el, html) {
 
 function rebuildShop(g) {
   const s = g.s;
-  // upgrades
-  dom.upgrades.innerHTML = '';
+  // upgrades — split into a dedicated CLICK POWER row and a PRODUCTION row
   const avail = g.UPGRADES.filter(u => !s.ups[u.id] && u.unlock(s));
-  if (!avail.length) {
-    dom.upgrades.innerHTML = '<div id="noupg">Nothing for sale... yet. Keep mining, deputy.</div>';
-  }
-  for (const u of avail.slice(0, 12)) {
+  const clickAvail = avail.filter(upgradeBoostsClick).slice(0, 8);
+  const prodAvail = avail.filter(u => !upgradeBoostsClick(u)).slice(0, 12);
+
+  const makeTile = u => {
     const btn = document.createElement('button');
     const clicky = upgradeBoostsClick(u);
     btn.className = 'upg' + (s.crystals >= u.cost ? ' afford' : '') + (clicky ? ' clickup' : '');
-    const ic = iconCanvas(u.icon, 64);
     const cv = document.createElement('canvas'); cv.width = cv.height = 64;
-    cv.getContext('2d').drawImage(ic, 0, 0);
+    cv.getContext('2d').drawImage(iconCanvas(u.icon, 64), 0, 0);
     btn.appendChild(cv);
     if (clicky) { const badge = document.createElement('span'); badge.className = 'clickbadge'; badge.textContent = '👆'; badge.title = 'Boosts per-click'; btn.appendChild(badge); }
     btn.addEventListener('click', () => { g.buyUpgrade(u.id); });
@@ -1846,8 +1850,15 @@ function rebuildShop(g) {
       const tag = clicky ? '<div class="clicktag">👆 BOOSTS PER-CLICK</div>' : '';
       return `<h4>${u.name}</h4>${tag}<div class="info">${eff}</div><div class="flavor">“${u.flavor}”</div><div class="price${s.crystals >= u.cost ? '' : ' no'}">💎 ${fmt(u.cost)}</div>`;
     });
-    dom.upgrades.appendChild(btn);
-  }
+    return btn;
+  };
+
+  dom.clickhead.hidden = clickAvail.length === 0;
+  dom.clickupgrades.innerHTML = '';
+  for (const u of clickAvail) dom.clickupgrades.appendChild(makeTile(u));
+  dom.upgrades.innerHTML = '';
+  if (!prodAvail.length && !clickAvail.length) dom.upgrades.innerHTML = '<div id="noupg">Nothing for sale... yet. Keep mining, deputy.</div>';
+  for (const u of prodAvail) dom.upgrades.appendChild(makeTile(u));
   // buildings
   dom.buildings.innerHTML = '';
   let revealed = 0;
@@ -1968,10 +1979,16 @@ function updateHud(g) {
   dom.btnPrestige.disabled = claim <= 0;
   dom.btnPrestige.textContent = claim > 0 ? `RAISE THE TOWER (+${claim} ★)` : 'RAISE THE TOWER';
   // affordability + max-buy labels without a full rebuild
-  const availCosts = g.UPGRADES.filter(u => !s.ups[u.id] && u.unlock(s)).slice(0, 12);
-  dom.upgrades.querySelectorAll('.upg').forEach((el, i) => {
-    if (availCosts[i]) el.classList.toggle('afford', s.crystals >= availCosts[i].cost);
+  const availAll = g.UPGRADES.filter(u => !s.ups[u.id] && u.unlock(s));
+  const clickCosts = availAll.filter(upgradeBoostsClick).slice(0, 8);
+  const prodCosts = availAll.filter(u => !upgradeBoostsClick(u)).slice(0, 12);
+  dom.clickupgrades.querySelectorAll('.upg').forEach((el, i) => {
+    if (clickCosts[i]) el.classList.toggle('afford', s.crystals >= clickCosts[i].cost);
   });
+  dom.upgrades.querySelectorAll('.upg').forEach((el, i) => {
+    if (prodCosts[i]) el.classList.toggle('afford', s.crystals >= prodCosts[i].cost);
+  });
+  const availCosts = availAll;
   const isMax = s.buyAmt === 'max';
   dom.buildings.querySelectorAll('.bld:not(.mystery)').forEach(el => {
     const b = BLD[el.dataset.bld];
@@ -2039,6 +2056,7 @@ function boot() {
     e.preventDefault();
     g.audio.unlock();
     const p = canvasPoint(e);
+    g.audio.ensureMusic();   // resume music if it stopped or was blocked
     if (g.packet && Math.hypot(p.x - g.packet.x, p.y - g.packet.y) < 52) { g.packetCaught(); return; }
     if (g.bandit && g.bandit.denied <= 0 && Math.hypot(p.x - g.bandit.x, p.y - (view.floorY - 24)) < 55) { g.banditCaught(); return; }
     g.mine(p.x, p.y);

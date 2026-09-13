@@ -220,7 +220,8 @@ main {
 #buyamt button.on { color: var(--yellow); border-color: var(--yellow); }
 
 /* upgrades grid */
-#upgrades { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; }
+#upgrades, #clickupgrades { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; }
+#clickupgrades { margin-bottom: 4px; }
 .upg {
   width: 46px; height: 46px;
   border: 2px solid var(--line);
