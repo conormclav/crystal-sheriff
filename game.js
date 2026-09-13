@@ -516,39 +516,68 @@ function buildUpgrades() {
       });
     });
   }
-  // click power (×2 each — a long, steep ladder)
+  // click power ladder — mostly ×2, with occasional ×3 "big" rungs, spaced so there is
+  // almost always a manual-click upgrade to buy (mult defaults to 2)
   const clicks = [
     ['Padded Glove', 100, 'Clicking the mega crystal no longer hurts. Morale and click power double.'],
-    ['Golden Spoon', 1200, 'Borrowed noob technology, but gold. The noobs want it back.'],
-    ['Tin Star Knuckles', 15e3, 'Punch the law directly INTO the crystal.'],
-    ['Crystal Pickaxe', 180e3, 'Mining a crystal with a crystal. The economy is fine. Everything is fine.'],
-    ['Twelve-Gallon Hat', 2.2e6, 'Two extra gallons of pure authority. The crystal respects the hat.'],
-    ['Spidey Reflexes', 26e6, 'spideybidey4 finally reads his own username. Everything changes.'],
-    ['L-Dance Warm-Up', 320e6, 'Perform the forbidden L dance before every click. The crystal is intimidated.'],
-    ['ACCESS GRANTED Stamp', 4e9, 'Skip the paperwork. The crystal simply gives up its contents.'],
-    ['Quantum Trigger Finger', 50e9, 'Your clicks now also happen in universes where you clicked harder.'],
-    ["The Sheriff's Sheriff", 600e9, 'You deputise your own clicking hand. It gets a tiny hat.'],
-    ['Click Singularity', 7.4e12, 'Each click briefly becomes the only event in the universe.'],
-    ['Both Hands, Deputy', 90e12, 'The academy said it could not be done. The academy was wrong.'],
-    ['The Click Heard Round The Frontier', 1.1e15, 'Echoes for days. Each echo also mines.'],
-    ['Finger Of Legend', 13e18, 'The 99999m tower flinches, respectfully, every time.'],
-    ['Cosmic Pointer', 150e18, 'Your finger is visible from the moon drill. The moon drill points back.'],
-    ['The Finger That Moves Worlds', 1.8e21, 'Planets politely roll out of the way.'],
-    ['Click Of Infinity', 22e24, 'One click. Every crystal, everywhere, briefly says "ow".'],
+    ['Sticky Fingers', 550, 'Crystals cling to the deputy on the way up. Nobody minds. Click power ×2.'],
+    ['Golden Spoon', 3.2e3, 'Borrowed noob technology, but gold. The noobs want it back.'],
+    ['Reinforced Knuckles', 18e3, 'Certified crystal-safe. Certified crystal-terrifying. Click power ×2.'],
+    ['Tin Star Knuckles', 95e3, 'Punch the law directly INTO the crystal.', 3],
+    ['Crystal Pickaxe', 500e3, 'Mining a crystal with a crystal. The economy is fine. Everything is fine.'],
+    ['Double Tap Training', 2.6e6, 'Two taps in the time of one. The academy is very confused. Click power ×2.'],
+    ['Twelve-Gallon Hat', 14e6, 'Two extra gallons of pure authority. The crystal respects the hat.'],
+    ['Lightning Lasso', 75e6, 'Rope the crystal, yank the crystals out. Click power ×3.', 3],
+    ['Spidey Reflexes', 400e6, 'spideybidey4 finally reads his own username. Everything changes.'],
+    ['L-Dance Warm-Up', 2.1e9, 'Perform the forbidden L dance before every click. The crystal is intimidated.'],
+    ['Percussive Maintenance', 11e9, 'Hit it until crystals come out. Works on everything, apparently. Click power ×2.'],
+    ['ACCESS GRANTED Stamp', 60e9, 'Skip the paperwork. The crystal simply gives up its contents.'],
+    ['Quantum Trigger Finger', 320e9, 'Your clicks now also happen in universes where you clicked harder. Click power ×3.', 3],
+    ["The Sheriff's Sheriff", 1.7e12, 'You deputise your own clicking hand. It gets a tiny hat.'],
+    ['Click Singularity', 9e12, 'Each click briefly becomes the only event in the universe.'],
+    ['Both Hands, Deputy', 48e12, 'The academy said it could not be done. The academy was wrong.'],
+    ['Thunder Thumbs', 260e12, 'Storm warnings issued for the arena. Click power ×3.', 3],
+    ['The Click Heard Round The Frontier', 1.4e15, 'Echoes for days. Each echo also mines.'],
+    ['Diamond Gauntlet', 7.5e15, 'Mine crystals with a fist made of crystal. Poetic. Click power ×2.'],
+    ['Finger Of Legend', 40e15, 'The 99999m tower flinches, respectfully, every time.'],
+    ['Overclocked Digit', 220e15, 'The finger has a cooling fan now. Click power ×3.', 3],
+    ['Cosmic Pointer', 1.2e18, 'Your finger is visible from the moon drill. The moon drill points back.'],
+    ['Supernova Slap', 6.5e18, 'One high-five ends (and restarts) a small star. Click power ×2.'],
+    ['The Finger That Moves Worlds', 36e18, 'Planets politely roll out of the way.'],
+    ['Galaxy Grip', 200e18, 'You palm the crystal like a basketball made of galaxies. Click power ×3.', 3],
+    ['Click Of Infinity', 1.1e21, 'One click. Every crystal, everywhere, briefly says "ow".'],
+    ['The Big Bang Button', 7e21, 'Historians confirm the universe started with a click. Click power ×3.', 3],
+    ['Omniclick', 48e21, 'You are clicking right now. And now. And — yes. Click power ×2.'],
+    ['The Last Finger', 320e21, 'After this, fingers were considered a solved problem. Click power ×3.', 3],
   ];
-  clicks.forEach(([name, cost, flavor], i) => ups.push({
-    id: 'click' + i, name, flavor, cost, type: 'click', mult: 2,
+  clicks.forEach(([name, cost, flavor, mult], i) => ups.push({
+    id: 'click' + i, name, flavor, cost, type: 'click', mult: mult || 2,
     unlock: s => s.lifetimeRun >= cost / 5, icon: 'click',
   }));
-  // crit clicks: chance for a ×10 YEEHAW click
-  ups.push({ id: 'crit1', name: 'Deadeye Badge', flavor: 'Sometimes a click lands PERFECTLY. 3% chance of a ×10 YEEHAW crit.', cost: 250e3, type: 'crit', pct: 0.03, unlock: s => s.clicks >= 400, icon: 'click' });
-  ups.push({ id: 'crit2', name: 'Hollow-Point Clicks', flavor: 'Banned in three counties. Crit chance +3%.', cost: 250e6, type: 'crit', pct: 0.03, unlock: s => s.crits >= 25, icon: 'click' });
-  ups.push({ id: 'crit3', name: 'YEEHAW Protocol', flavor: 'The yeehaw is now mandatory and automated. Crit chance +4%.', cost: 250e9, type: 'crit', pct: 0.04, unlock: s => s.crits >= 250, icon: 'click' });
+  // crit CHANCE: chance for a big YEEHAW click
+  const critChance = [
+    ['Deadeye Badge', 250e3, 'Sometimes a click lands PERFECTLY. +3% crit chance.', 0.03, s => s.clicks >= 400],
+    ['Hollow-Point Clicks', 40e6, 'Banned in three counties. +3% crit chance.', 0.03, s => s.crits >= 25],
+    ['YEEHAW Protocol', 8e9, 'The yeehaw is now mandatory and automated. +4% crit chance.', 0.04, s => s.crits >= 200],
+    ['Steady Hands', 2e12, 'Coffee replaced with warm milk. Aim improved. +5% crit chance.', 0.05, s => s.crits >= 2000],
+    ['Bullseye Instinct', 600e12, 'You cannot miss. You have forgotten how. +5% crit chance.', 0.05, s => s.crits >= 20000],
+  ];
+  critChance.forEach(([name, cost, flavor, pct, unlock], i) => ups.push({ id: 'crit' + (i + 1), name, flavor, cost, type: 'crit', pct, unlock, icon: 'click' }));
+  // crit MULTIPLIER: crits hit even harder (base ×10)
+  const critMult = [
+    ['Bigger YEEHAW', 3e6, 'The crit yell is louder, therefore stronger. Crits +5× (now ×15).', 5, s => s.crits >= 10],
+    ['High Noon Special', 900e6, 'Timed to the exact second the sun peaks. Crits +10× (now ×25).', 10, s => s.crits >= 300],
+    ['Meteor Knuckle', 300e9, 'A tiny meteor rides your fist down. Crits +15× (now ×40).', 15, s => s.crits >= 3000],
+    ['Legendary Crit', 100e12, 'Bards will sing of this single click. Crits +25× (now ×65).', 25, s => s.crits >= 30000],
+  ];
+  critMult.forEach(([name, cost, flavor, add, unlock], i) => ups.push({ id: 'critmult' + (i + 1), name, flavor, cost, type: 'critmult', add, unlock, icon: 'click' }));
   // synergy: clicks gain % of CPS
   ups.push({ id: 'syn1', name: 'Deputy Fist Bump', flavor: 'The posse fist-bumps every click. Clicks gain +1% of your /sec.', cost: 50e3, type: 'syn', pct: 0.01, unlock: s => totalBuildings(s) >= 15, icon: 'syn' });
   ups.push({ id: 'syn2', name: 'Posse Power', flavor: 'The posse now high-fives in formation. Clicks gain another +4% of your /sec.', cost: 60e6, type: 'syn', pct: 0.04, unlock: s => totalBuildings(s) >= 60, icon: 'syn' });
   ups.push({ id: 'syn3', name: 'One Big Weird Family', flavor: 'Group hug (bosses included, FIREWALL is warm). Clicks gain another +5% of your /sec.', cost: 70e9, type: 'syn', pct: 0.05, unlock: s => totalBuildings(s) >= 150, icon: 'syn' });
   ups.push({ id: 'syn4', name: 'The Whole Frontier Claps', flavor: 'Every cube claps on every click. Clicks gain another +10% of your /sec.', cost: 80e12, type: 'syn', pct: 0.10, unlock: s => totalBuildings(s) >= 300, icon: 'syn' });
+  ups.push({ id: 'syn5', name: 'Standing Ovation', flavor: 'They will not sit down. They refuse. Clicks gain another +15% of your /sec.', cost: 90e15, type: 'syn', pct: 0.15, unlock: s => totalBuildings(s) >= 500, icon: 'syn' });
+  ups.push({ id: 'syn6', name: 'The Crowd Goes Cosmic', flavor: 'Every cube in the Cube-Verse cheers at once. Clicks gain another +25% of your /sec.', cost: 100e18, type: 'syn', pct: 0.25, unlock: s => totalBuildings(s) >= 800, icon: 'syn' });
   // global ×2
   const globals = [
     ['Crystal Coffee', 8e6, 'The whole posse switches to triple-shot crystal espresso. EVERYTHING is ×2 and slightly vibrating.'],
@@ -641,7 +670,7 @@ const ACHIEVEMENTS = [
 ];
 
 /** True for upgrades that raise your per-click power (shown with a 👆 badge). */
-function upgradeBoostsClick(u) { return u.type === 'click' || u.type === 'syn' || u.type === 'crit'; }
+function upgradeBoostsClick(u) { return u.type === 'click' || u.type === 'syn' || u.type === 'crit' || u.type === 'critmult'; }
 function totalBuildings(s) { return BUILDINGS.reduce((n, b) => n + s.bld[b.id], 0); }
 function skinUnlocked(k, s) { return s.lifetimeTotal >= k.need && s.stars >= k.needStars; }
 
@@ -805,7 +834,7 @@ class Game {
     this.UPGRADES = buildUpgrades();
     this.UPG = Object.fromEntries(this.UPGRADES.map(u => [u.id, u]));
     this.audio = new AudioMan();
-    this.cps = 0; this.cpc = 1;
+    this.cps = 0; this.cpc = 1; this.critMult = 10;
     this.buffs = { frenzy: 0, fever: 0, deadeye: 0 };  // seconds remaining
     this.packet = null; this.packetTimer = rand(20, 45);
     this.bandit = null; this.banditTimer = rand(20, 50);
@@ -853,6 +882,10 @@ class Game {
     let pct = CLICK_BASE_SHARE;   // every click is always worth this share of your /sec, so /click grows as you do
     for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'syn') pct += u.pct;
     const fever = this.buffs.fever > 0 ? 15 : 1;
+    // crit multiplier: base ×10, raised by critmult upgrades
+    let cm = 10;
+    for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'critmult') cm += u.add;
+    this.critMult = cm;
     // manual clicks get the ×2 ladder PLUS a share of production; robots use only the raw ladder (a synergy loop would explode)
     this.clickShare = this.baseCps * pct;
     this.cpc = (ladder * gm + this.clickShare) * fever;   // baseCps already carries gm — don't apply it twice
@@ -911,7 +944,7 @@ class Game {
   mine(px, py) {
     let gain = this.cpc;
     const crit = Math.random() < this.critChance();
-    if (crit) { gain *= 10; this.s.crits++; }
+    if (crit) { gain *= this.critMult; this.s.crits++; }
     this.earn(gain);
     this.s.clicks++;
     this.s.clickCrystals += gain;
@@ -1800,7 +1833,8 @@ function rebuildShop(g) {
     attachTooltip(btn, () => {
       const eff = u.type === 'bld' ? BLD[u.bld].name + ' output ×' + u.mult
         : u.type === 'autox2' ? 'All auto-click buildings ×2'
-        : u.type === 'crit' ? 'Crit chance +' + Math.round(u.pct * 100) + '% (crits are ×10)'
+        : u.type === 'crit' ? 'Crit chance +' + Math.round(u.pct * 100) + '%'
+        : u.type === 'critmult' ? 'Critical clicks +' + u.add + '× bigger'
         : u.type === 'click' ? 'Click power ×' + u.mult
         : u.type === 'syn' ? 'Clicks gain +' + Math.round(u.pct * 100) + '% of your /sec'
         : u.type === 'global' ? 'EVERYTHING ×' + u.mult
@@ -1895,7 +1929,7 @@ function rebuildShop(g) {
     ['Mined all time', fmt(s.lifetimeTotal)],
     ['Crystal clicks', fmt(s.clicks)],
     ['Mined by hand', fmt(s.clickCrystals)],
-    ['YEEHAW crits', fmt(s.crits) + (g.critChance() > 0 ? '  (' + Math.round(g.critChance() * 100) + '% chance)' : '')],
+    ['YEEHAW crits', fmt(s.crits) + (g.critChance() > 0 ? '  (' + Math.round(g.critChance() * 100) + '% chance, ×' + g.critMult + ')' : '')],
     ['Golden packets caught', fmt(s.goldenClicks)],
     ['Bounties collected', fmt(s.bounties)],
     ['Posse size', fmt(totalBuildings(s))],
