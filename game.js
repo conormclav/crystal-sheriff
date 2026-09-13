@@ -24,6 +24,10 @@ const COLORS = {
 /* Adaptive quality: if a device can't hold ~25fps, drop to a lighter scene once. */
 const PERF = { low: false, acc: 0, n: 0 };
 
+/* Every manual click is always worth at least this fraction of your per-second income,
+   so /click visibly climbs as the game grows even before you buy click upgrades. */
+const CLICK_BASE_SHARE = 0.08;
+
 const _rgbCache = new Map();
 function hexToRgb(hex) {
   let c = _rgbCache.get(hex);
@@ -844,12 +848,14 @@ class Game {
     this.baseCps = cps;   // building production (no buffs, no auto-clicks)
     let ladder = 1;
     for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'click') ladder *= u.mult;
-    let pct = 0;
+    let pct = CLICK_BASE_SHARE;   // every click is always worth this share of your /sec, so /click grows as you do
     for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'syn') pct += u.pct;
     const fever = this.buffs.fever > 0 ? 15 : 1;
-    this.cpc = (ladder * gm + this.baseCps * pct) * fever;   // baseCps already carries gm — don't apply it twice
+    // manual clicks get the ×2 ladder PLUS a share of production; robots use only the raw ladder (a synergy loop would explode)
+    this.clickShare = this.baseCps * pct;
+    this.cpc = (ladder * gm + this.clickShare) * fever;   // baseCps already carries gm — don't apply it twice
     this.autoRate = rate;                       // robot clicks per second
-    this.autoCps = rate * ladder * gm * fever;  // robots click with your raw click power (no CPS synergy — that loop explodes)
+    this.autoCps = rate * ladder * gm * fever;  // robots click with your raw click power (no CPS synergy)
     this.cps = (cps + this.autoCps) * (this.buffs.frenzy > 0 ? 7 : 1);
   }
   bldPrice(b, n = 1) {
