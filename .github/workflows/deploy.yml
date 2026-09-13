@@ -1,0 +1,42 @@
+# Deploys Crystal Clicker to greenpencil.co over FTPS on every push.
+#
+# One-time setup (repo Settings → Secrets and variables → Actions → New repository secret):
+#   FTP_SERVER   = ftp.greenpencil.co
+#   FTP_USERNAME = the FTP account username
+#   FTP_PASSWORD = the FTP account password
+#
+# The game is uploaded to ./crystal-clicker/ relative to where the FTP account
+# lands after login. If the account lands in the site's home directory rather
+# than the web root, change server-dir to e.g. public_html/crystal-clicker/.
+name: Deploy to greenpencil.co
+
+on:
+  push:
+    branches: [claude/dreamy-pascal-1ioovr, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ftp-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload game over FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./
+          server-dir: crystal-clicker/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
