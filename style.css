@@ -106,6 +106,7 @@ button {
 .stat { color: #9fb8c8; font-size: 9px; white-space: nowrap; }
 .stat b { color: #fff; font-size: 11px; }
 #stCrystals { color: var(--cyan); font-size: clamp(14px, 2.4vw, 20px); text-shadow: 2px 2px 0 var(--ink), 0 0 14px rgba(25, 230, 255, 0.55); }
+#stPow { color: var(--magenta); font-size: 8px; opacity: 0.9; }
 #stCps b { color: var(--green); }
 #stCpc b { color: var(--yellow); }
 #stHeight b { color: var(--magenta); }
@@ -377,6 +378,9 @@ main {
   #topbar { padding: 6px 8px; }
   .bld { grid-template-columns: 40px 1fr auto; }
   .bld canvas { width: 40px; height: 40px; }
+  #toasts { max-width: 62vw; }
+  .toast { padding: 7px 10px; }
+  .toast .ico { font-size: 15px; }
 }
 
 /* landscape phones / short windows: compress the chrome, keep panels side by side */

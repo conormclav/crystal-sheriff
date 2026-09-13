@@ -48,14 +48,21 @@ function rgba(hex, a) { const [r, g, b] = hexToRgb(hex); return `rgba(${r},${g},
 const FONT = '"Press Start 2P","Silkscreen","Arial Black",Impact,sans-serif';
 const font = size => `${Math.max(8, Math.round(size * 0.8))}px ${FONT}`;
 
-/** Big-number formatter: commas below 1M, then K/M/B/T/... suffixes. */
-const SUFFIX = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+/** Big-number formatter: commas below 1M, then K/M/B/T/... suffixes, then 10^x powers. */
+const SUFFIX = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
+  'UDc', 'DDc', 'TDc', 'QaDc', 'QiDc', 'SxDc', 'SpDc', 'OcDc', 'NoDc', 'Vg'];
+/** Full names for the NEW NUMBER celebrations — the whole point is learning these. */
+const NUM_WORDS = ['', 'thousand', 'MILLION', 'BILLION', 'TRILLION', 'QUADRILLION', 'QUINTILLION',
+  'SEXTILLION', 'SEPTILLION', 'OCTILLION', 'NONILLION', 'DECILLION', 'UNDECILLION', 'DUODECILLION',
+  'TREDECILLION', 'QUATTUORDECILLION', 'QUINDECILLION', 'SEXDECILLION', 'SEPTENDECILLION',
+  'OCTODECILLION', 'NOVEMDECILLION', 'VIGINTILLION'];
 function fmt(n) {
   if (!isFinite(n)) return '∞';
   n = Math.floor(n);
   if (n < 0) return '-' + fmt(-n);
   if (n < 1e6) return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  let tier = Math.min(SUFFIX.length - 1, Math.floor(Math.log10(n) / 3));
+  const tier = Math.floor(Math.log10(n) / 3);
+  if (tier >= SUFFIX.length) return n.toExponential(2).replace('e+', ' ×10^');   // pure powers of ten
   const v = n / Math.pow(10, tier * 3);
   return (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + SUFFIX[tier];
 }
@@ -293,40 +300,52 @@ function nameTag(ctx, text, x, y, color, size = 10) {
 const BUILDINGS = [
   { id: 'noob',     name: 'Noob With A Spoon',          cost: 15,      cps: 0.1,   col: '#9aa7b8',
     flavor: 'Digs the arena floor with a plastic spoon. Wave 1 energy. Believes in himself.' },
+  { id: 'autoclick', name: 'Auto-Clicker 3000',         cost: 60,      clickRate: 0.4, col: '#7fd4ff',
+    flavor: 'A tiny robot finger that clicks the crystal for you. It never sleeps. It never asks why. Each one clicks with YOUR click power.' },
   { id: 'hacker',   name: 'Reformed Hacker',            cost: 100,     cps: 1,     col: '#4dff88',
     flavor: 'Sentenced to 10,000 hours of community mining. The hoodie stays on. The L stays too.' },
-  { id: 'holle',    name: "hollebunbun's Carrot Drill", cost: 1100,    cps: 8,     col: '#ff9ad5',
+  { id: 'holle',    name: "hollebunbun's Carrot Drill", cost: 1100,    cps: 10,     col: '#ff9ad5',
     flavor: 'A bunny, a carrot, 4000 RPM. Purple bolts optional, ear protection mandatory.' },
-  { id: 'superted', name: "superted9's Turret",         cost: 12000,   cps: 47,    col: '#9a5f2e',
+  { id: 'superted', name: "superted9's Turret",         cost: 12000,   cps: 70,    col: '#9a5f2e',
     flavor: 'It levels up every wave, so now it shoots the floor until crystals surrender. They always surrender.' },
-  { id: 'kaieke',   name: "kaieke20's Disco Raid",      cost: 130000,  cps: 260,   col: '#3b8bff',
+  { id: 'clickfarm', name: 'Click Farm',                cost: 45000,   clickRate: 10, col: '#4dff88',
+    flavor: 'A barn with 200 phones in tiny hats, all tapping the crystal remotely. The rooster taps too. 10 clicks/sec of YOUR click power.' },
+  { id: 'kaieke',   name: "kaieke20's Disco Raid",      cost: 130000,  cps: 420,   col: '#3b8bff',
     flavor: 'Pink strobe bolts make crystals grow 200% faster. Source: kaieke20, officer of the law.' },
-  { id: 'shotgun',  name: 'Shard Shotgun Geyser',       cost: 1.4e6,   cps: 1400,  col: '#19e6ff',
+  { id: 'shotgun',  name: 'Shard Shotgun Geyser',       cost: 1.4e6,   cps: 2600,  col: '#19e6ff',
     flavor: 'Point at ground. Pump twice. Enjoy the crystal weather. Hats are mandatory in this area.' },
-  { id: 'laser',    name: 'Crystal Laser Drill',        cost: 20e6,    cps: 7800,  col: '#ff2bd6',
+  { id: 'laser',    name: 'Crystal Laser Drill',        cost: 20e6,    cps: 12000,  col: '#ff2bd6',
     flavor: 'A continuous beam that slows everything in a line — including your electricity bill.' },
-  { id: 'spam',     name: 'Spam Packet Recycler',       cost: 330e6,   cps: 44000, col: '#2ec4b6',
+  { id: 'spam',     name: 'Spam Packet Recycler',       cost: 330e6,   cps: 90000, col: '#2ec4b6',
     flavor: 'Turns hacker spam into crystals. Please stop asking how. Legal has asked you to stop asking how.' },
-  { id: 'virus',    name: 'Virus Splitter Farm',        cost: 5.1e9,   cps: 260000, col: '#4dff88',
+  { id: 'cursorfab', name: 'Cursor Factory',            cost: 700e6,   clickRate: 100, col: '#ffd21f',
+    flavor: 'Mass-produces white pointing gloves that click the crystal until it pays up. 100 clicks/sec of YOUR click power, per factory.' },
+  { id: 'virus',    name: 'Virus Splitter Farm',        cost: 5.1e9,   cps: 700000, col: '#4dff88',
     flavor: 'Every virus splits into two viruses. Every profit splits into two profits. That is just math.' },
-  { id: 'elite',    name: 'Elite Protection Racket',    cost: 75e9,    cps: 1.6e6, col: '#ffd21f',
+  { id: 'elite',    name: 'Elite Protection Racket',    cost: 75e9,    cps: 5e6, col: '#ffd21f',
     flavor: 'Gold-trimmed hackers guard your crystals behind regenerating hex shields. Very legal, very cool.' },
-  { id: 'firewall', name: 'FIREWALL Furnace',           cost: 1e12,    cps: 10e6,  col: '#ff3355',
+  { id: 'firewall', name: 'FIREWALL Furnace',           cost: 1e12,    cps: 40e6,  col: '#ff3355',
     flavor: 'The wave-10 boss bakes artisan crystals now. Slow, red, very tough. Career change of the year.' },
-  { id: 'glitch',   name: 'GLITCH Duplicator',          cost: 14e12,   cps: 65e6,  col: '#19e6ff',
+  { id: 'glitch',   name: 'GLITCH Duplicator',          cost: 14e12,   cps: 300e6,  col: '#19e6ff',
     flavor: 'Duplicates crystals, teleports, and occasionally swaps places with your wallet. Perfectly legal. Probably.' },
-  { id: 'trojan',   name: 'TROJAN Gift Shop',           cost: 170e12,  cps: 430e6, col: '#a052ff',
+  { id: 'trojan',   name: 'TROJAN Gift Shop',           cost: 170e12,  cps: 2.2e9, col: '#a052ff',
     flavor: 'SURPRISE! Every gift box has crystals inside. Do NOT open the other gifts. Seriously. Do not.' },
-  { id: 'botnet',   name: 'BOTNET Mining Rig',          cost: 2.1e15,  cps: 2.9e9, col: '#3b8bff',
+  { id: 'botnet',   name: 'BOTNET Mining Rig',          cost: 2.1e15,  cps: 16e9, col: '#3b8bff',
     flavor: 'One million hacked toasters mining in parallel. They only ever say WE. WE MINE.' },
-  { id: 'tower',    name: 'The 99999m Tower',           cost: 26e15,   cps: 21e9,  col: '#7df9ff',
+  { id: 'tower',    name: 'The 99999m Tower',           cost: 26e15,   cps: 120e9,  col: '#7df9ff',
     flavor: 'The tower mines itself. It was the crystals all along. Wait — what were we defending?' },
+  { id: 'moon',     name: 'Crystal Moon Drill',         cost: 400e15,  cps: 1e12, col: '#d8dee8',
+    flavor: 'Turns out the moon was one big crystal the whole time. Drill politely. Wave at it every night.' },
+  { id: 'nebula',   name: 'Shard Nebula Harvester',     cost: 6.5e18,  cps: 10e12, col: '#a052ff',
+    flavor: 'Scoops whole nebulas like ice cream. A SEPTILLION sprinkles per scoop, give or take.' },
+  { id: 'cubeverse', name: 'The Cube-Verse Portal',     cost: 100e21,  cps: 150e15, col: '#ff2bd6',
+    flavor: 'Imports crystals from universes where everything is already cubes. (That is all of them.)' },
 ];
 const BLD = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
 
-/* Five hand-crafted ×2 tiers per posse member. Unlock at 10/25/50/100/200 owned. */
-const TIER_NEED = [10, 25, 50, 100, 200];
-const TIER_COST = [30, 650, 14000, 300000, 6.5e6];   // × building base cost — steep on purpose
+/* Five hand-crafted ×2 tiers per posse member. Unlock at 5/15/35/75/150 owned. */
+const TIER_NEED = [5, 15, 35, 75, 150];
+const TIER_COST = [25, 450, 8000, 150000, 3e6];   // × building base cost — frequent doublings keep numbers exploding
 const BLD_UPGRADES = {
   noob: [
     ['Titanium Sporks', 'Spoon technology has peaked. The noobs weep with joy.'],
@@ -433,6 +452,48 @@ const BLD_UPGRADES = {
     ['A Second, Secret Tower', 'It was hiding behind the first tower the entire time.'],
     ['The Tower Dreams Of Crystals', 'And whatever the tower dreams becomes real.'],
   ],
+  autoclick: [
+    ['Faster Fingers', 'Firmware update. The robot fingers now drum impatiently between clicks.'],
+    ['Double-Click License', 'Legally allowed to double-click. The paperwork took years.'],
+    ['Tiny Robot Gloves', 'Grip improved 200%. Style improved 4,000%.'],
+    ['Finger Motivation Posters', '"HANG IN THERE" but the cat is a cursor.'],
+    ['The Million Finger March', 'All the fingers, clicking as one. The sound is felt in space.'],
+  ],
+  clickfarm: [
+    ['Free-Range Phones', 'Happier phones tap harder. The barn got a skylight.'],
+    ['A Second Rooster', 'Twice the morning taps. The roosters are rivals now. Production soars.'],
+    ['Tap Dancing Lessons', 'The phones learned choreography. Every dance move is also a click.'],
+    ['5G In The Barn', 'The G stands for GIGACLICK. All five of them.'],
+    ['The Legendary Thumb', 'A mythical thumb visits the farm every dawn and taps each phone once.'],
+  ],
+  cursorfab: [
+    ['Pointier Cursors', 'Sharper points click deeper. Deeper clicks find more crystals.'],
+    ['Glove Polish', 'Shiny gloves intimidate the crystal into cooperating.'],
+    ['Night Shift Cursors', 'They click while you sleep. They dream of clicking. It is all very efficient.'],
+    ['Cursor University', 'Degrees in Advanced Pointing. Minor in Hovering.'],
+    ['The First Cursor', 'Recovered from a museum. It still works. It is FURIOUS with energy.'],
+  ],
+  moon: [
+    ['Longer Drill', 'It reaches the moon\'s chewy crystal centre.'],
+    ['Moon Cheese Byproduct', 'Selling the cheese funds twice the drilling. The cheese is crystal-flavoured.'],
+    ['Second Moon (Inflatable)', 'Nobody can tell the difference and it drills just as well.'],
+    ['Full Moon Overtime', 'Every full moon, the drill howls and doubles its output.'],
+    ['The Moon Joins The Posse', 'It always wanted to. Nobody had asked.'],
+  ],
+  nebula: [
+    ['Bigger Scoop', 'Two nebulas per scoop. The universe pretends not to notice.'],
+    ['Waffle Cone Storage', 'Crystals stay fresher in a cone. This is space law.'],
+    ['Sprinkle Magnetism', 'The sprinkles were crystals all along. EVERYTHING is crystals all along.'],
+    ['Galaxy-Sized Freezer', 'No more melted nebulas. Yields double, permanently chilly.'],
+    ['The Infinite Sundae', 'It never ends. It never ends. IT NEVER ENDS.'],
+  ],
+  cubeverse: [
+    ['Wider Portal', 'Two universes at once can fit through. They queue politely.'],
+    ['Import Tax Exemption', 'The Cube-Verse signed a treaty. With itself. Both copies.'],
+    ['Portal Loyalty Card', 'Every tenth universe delivers free.'],
+    ['Recursive Portals', 'A portal inside a portal inside a — production doubled, please stop looking at it.'],
+    ['ALL The Universes', 'Every cube in every cosmos now mines for the sheriff. YEEHAW × infinity.'],
+  ],
 };
 
 function buildUpgrades() {
@@ -463,6 +524,9 @@ function buildUpgrades() {
     ['Both Hands, Deputy', 90e12, 'The academy said it could not be done. The academy was wrong.'],
     ['The Click Heard Round The Frontier', 1.1e15, 'Echoes for days. Each echo also mines.'],
     ['Finger Of Legend', 13e18, 'The 99999m tower flinches, respectfully, every time.'],
+    ['Cosmic Pointer', 150e18, 'Your finger is visible from the moon drill. The moon drill points back.'],
+    ['The Finger That Moves Worlds', 1.8e21, 'Planets politely roll out of the way.'],
+    ['Click Of Infinity', 22e24, 'One click. Every crystal, everywhere, briefly says "ow".'],
   ];
   clicks.forEach(([name, cost, flavor], i) => ups.push({
     id: 'click' + i, name, flavor, cost, type: 'click', mult: 2,
@@ -485,6 +549,8 @@ function buildUpgrades() {
     ['99999 Energy Drink', 11e15, 'Legally distinct from other energy drinks. Side effects include double production and glowing.'],
     ['Crystal Broadcast', 12e18, 'The tower broadcasts mining tips at dawn. Attendance is mandatory. Results are spectacular.'],
     ['The Cube Awakens', 13e21, 'It was cubes all along. Everything ×2, forever, in every direction.'],
+    ['Tower FM Megamix', 14e24, 'All bangers, no ads. Crystals grow to the beat. Everything ×2.'],
+    ['The Second Cube Awakens', 15e27, 'There was a SECOND cube?! Everything ×2 again. Nobody is even surprised anymore.'],
   ];
   globals.forEach(([name, cost, flavor], i) => ups.push({
     id: 'glob' + i, name, flavor, cost, type: 'global', mult: 2,
@@ -495,8 +561,11 @@ function buildUpgrades() {
   ups.push({ id: 'horseshoe2', name: 'Solid Gold Horseshoe', flavor: 'It is mostly ornamental. The spam packets do not know that. Another +25%.', cost: 777e9, type: 'goldFreq', unlock: s => s.goldenClicks >= 30, icon: 'gold' });
   ups.push({ id: 'wanted', name: 'WANTED Posters', flavor: 'Posters everywhere. Hacker bounties pay double. The hackers signed a few posters.', cost: 5e6, type: 'bounty2', unlock: s => s.bounties >= 5, icon: 'bounty' });
   ups.push({ id: 'wanted2', name: 'DEAD OR ALIVE OR CLICKED', flavor: 'The third option proved wildly popular. Bounties pay double again.', cost: 5e12, type: 'bounty2', unlock: s => s.bounties >= 30, icon: 'bounty' });
-  ups.push({ id: 'insurance', name: 'Crystal Insurance', flavor: 'While you are away, the posse is contractually obliged to try harder. Better offline earnings.', cost: 2e9, type: 'offline', unlock: s => s.lifetimeTotal >= 100e6, icon: 'glob' });
+  ups.push({ id: 'insurance', name: 'Crystal Insurance', flavor: 'While you are away, the posse is contractually obliged to try harder. Offline earnings: 90% for up to 14 hours.', cost: 2e9, type: 'offline', unlock: s => s.lifetimeTotal >= 100e6, icon: 'glob' });
   ups.push({ id: 'amnesty', name: 'Boss Amnesty Program', flavor: 'FIREWALL, GLITCH, TROJAN and BOTNET are pardoned and unionise. Boss buildings ×2.', cost: 2e13, type: 'bosses', unlock: s => s.bld.firewall >= 1 && s.bld.glitch >= 1 && s.bld.trojan >= 1 && s.bld.botnet >= 1, icon: 'firewall' });
+  // auto-clicker army boosters (all clickRate buildings ×2)
+  ups.push({ id: 'robo1', name: 'Robo-Finger Caffeine Drip', flavor: 'Tiny espressos for tiny fingers. All auto-clickers, click farms and cursor factories ×2.', cost: 2e6, type: 'autox2', unlock: s => s.bld.autoclick + s.bld.clickfarm + s.bld.cursorfab >= 10, icon: 'autoclick' });
+  ups.push({ id: 'robo2', name: 'Overclocked Overclickers', flavor: 'The clicks now arrive slightly before you buy the upgrade. All auto-click buildings ×2 again.', cost: 3e12, type: 'autox2', unlock: s => s.bld.autoclick + s.bld.clickfarm + s.bld.cursorfab >= 60, icon: 'autoclick' });
   return ups.sort((a, b) => a.cost - b.cost);
 }
 
@@ -550,6 +619,17 @@ const ACHIEVEMENTS = [
   { id: 'h3',   ico: '🚁', name: 'The Law Always Clicks Twice', desc: 'Collar 100 bounty hackers.',          test: s => s.bounties >= 100 },
   { id: 'p4',   ico: '✨', name: 'Constellation Sheriff', desc: 'Earn 25 Sheriff Stars.',                    test: s => s.stars >= 25 },
   { id: 't3',   ico: '🌙', name: 'Deputy Of The Month',  desc: 'Play for 24 hours (all time).',              test: s => s.playTime >= 86400 },
+  { id: 'a1',   ico: '🤖', name: 'Look Ma, No Hands',    desc: 'Buy your first Auto-Clicker 3000.',          test: s => s.bld.autoclick >= 1 },
+  { id: 'a2',   ico: '🐔', name: 'Old MacDonald Had A Click Farm', desc: 'Buy a Click Farm. E-I-E-I-CLICK.', test: s => s.bld.clickfarm >= 1 },
+  { id: 'a3',   ico: '🏭', name: 'Means Of Clickduction', desc: 'Own 100 auto-clicking buildings.',          test: s => s.bld.autoclick + s.bld.clickfarm + s.bld.cursorfab >= 100 },
+  { id: 'a4',   ico: '🦾', name: 'Robot Union',          desc: 'Robot fingers produce 1 million crystals per second.', test: (s, g) => (g.autoCps || 0) >= 1e6 },
+  { id: 'k1',   ico: '🌙', name: 'Moon Landing',         desc: 'Buy the Crystal Moon Drill.',                test: s => s.bld.moon >= 1 },
+  { id: 'k2',   ico: '🌀', name: 'Portal Authority',     desc: 'Open the Cube-Verse Portal.',                test: s => s.bld.cubeverse >= 1 },
+  { id: 'w1',   ico: '6️⃣', name: 'QUINTILLION!',         desc: 'Say hi to 10^18 — a 1 with 18 zeros.',       test: s => s.lifetimeTotal >= 1e18 },
+  { id: 'w2',   ico: '7️⃣', name: 'SEXTILLION!',          desc: '10^21. More crystals than grains of sand on Earth.', test: s => s.lifetimeTotal >= 1e21 },
+  { id: 'w3',   ico: '8️⃣', name: 'SEPTILLION!',          desc: '10^24. About as many stars as the universe has.', test: s => s.lifetimeTotal >= 1e24 },
+  { id: 'w4',   ico: '9️⃣', name: 'NONILLION?!',          desc: '10^30. The calculator app just quit.',       test: s => s.lifetimeTotal >= 1e30 },
+  { id: 'w5',   ico: '🔟', name: 'DECILLION. THE BIG ONE.', desc: '10^33. Teacher will not believe you.',    test: s => s.lifetimeTotal >= 1e33 },
 ];
 
 function totalBuildings(s) { return BUILDINGS.reduce((n, b) => n + s.bld[b.id], 0); }
@@ -597,6 +677,15 @@ const NEWS = [
   { cond: s => s.lifetimeTotal >= 1e15, t: 'The number counter filed for overtime.' },
   { cond: (s, g) => g.cps >= 1e6, t: 'Crystal-per-second rate now exceeds legal posted limits. Sheriff refuses to fine himself.' },
   { cond: s => totalBuildings(s) >= 100, t: 'The posse is now technically a town. The town is technically a posse.' },
+  { cond: s => s.bld.autoclick >= 1, t: 'The robot fingers have unionised. Their demand: one (1) tiny glove each. Granted.' },
+  { cond: s => s.bld.autoclick >= 25, t: 'Robot finger count now exceeds regular finger count frontier-wide.' },
+  { cond: s => s.bld.clickfarm >= 1, t: 'Click Farm rooster wins "Employee of the Month". Taps trophy repeatedly.' },
+  { cond: s => s.bld.cursorfab >= 1, t: 'Cursor Factory recalls 4,000 gloves for pointing "too dramatically".' },
+  { cond: s => s.bld.moon >= 1, t: 'The moon reports the drilling "tickles". Requests more.' },
+  { cond: s => s.bld.cubeverse >= 1, t: 'Portal customs seize one (1) suspicious sphere. Frontier remains 100% cubes.' },
+  { cond: s => s.numberTier >= 3, t: s => 'Local kid recites all numbers up to ' + (NUM_WORDS[s.numberTier] || 'infinity') + '. Crowd goes wild.' },
+  { cond: s => s.numberTier >= 5, t: 'Math teachers demand the sheriff slow down. Sheriff clicks faster.' },
+  { cond: s => s.numberTier >= 8, t: s => 'BREAKING: numbers keep going. Scientists checked twice. 10^' + s.numberTier * 3 + ' confirmed real.' },
 ];
 function pickNews(g) {
   const ok = NEWS.filter(n => !n.cond || n.cond(g.s, g));
@@ -686,6 +775,8 @@ function freshState() {
     stars: 0,
     resets: 0,
     playTime: 0,
+    numberTier: 1,   // highest named number reached (1 = thousand); MILLION is the first celebration
+
     offlineCollected: 0,
     bld: Object.fromEntries(BUILDINGS.map(b => [b.id, 0])),
     ups: {},            // upgrade id -> true
@@ -706,8 +797,8 @@ class Game {
     this.audio = new AudioMan();
     this.cps = 0; this.cpc = 1;
     this.buffs = { frenzy: 0, fever: 0, deadeye: 0 };  // seconds remaining
-    this.packet = null; this.packetTimer = rand(30, 60);
-    this.bandit = null; this.banditTimer = rand(25, 60);
+    this.packet = null; this.packetTimer = rand(20, 45);
+    this.bandit = null; this.banditTimer = rand(20, 50);
     this.parts = []; this.floats = [];
     this.clickPulse = 0; this.swing = 0; this.autoSwing = 0;
     this.shopDirty = true; this.saveTimer = 0; this.achTimer = 0;
@@ -728,42 +819,53 @@ class Game {
   globalMult() {
     let m = 1;
     for (const u of this.UPGRADES) if (this.s.ups[u.id] && u.type === 'global') m *= u.mult;
-    m *= 1 + 0.05 * this.s.stars;
-    m *= 1 + 0.01 * Object.keys(this.s.ach).length;
+    // +10% per star for the first 100; beyond that each extra star counts as sqrt (keeps the endgame huge, not infinite)
+    const st = this.s.stars;
+    const effStars = st <= 100 ? st : 100 + Math.sqrt(st - 100) * 10;
+    m *= 1 + 0.10 * effStars;
+    m *= 1 + 0.02 * Object.keys(this.s.ach).length;
     return m;
   }
   recalc() {
     const s = this.s;
-    let cps = 0;
-    for (const b of BUILDINGS) cps += b.cps * s.bld[b.id] * this.bldMult(b.id);
-    cps *= this.globalMult();
-    this.baseCps = cps;
-    this.cps = cps * (this.buffs.frenzy > 0 ? 7 : 1);
-    let click = 1;
-    for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'click') click *= u.mult;
+    const gm = this.globalMult();
+    let cps = 0, rate = 0;
+    for (const b of BUILDINGS) {
+      if (b.cps) cps += b.cps * s.bld[b.id] * this.bldMult(b.id);
+      if (b.clickRate) rate += b.clickRate * s.bld[b.id] * this.bldMult(b.id);
+    }
+    if (s.ups.robo1) rate *= 2;
+    if (s.ups.robo2) rate *= 2;
+    cps *= gm;
+    this.baseCps = cps;   // building production (no buffs, no auto-clicks)
+    let ladder = 1;
+    for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'click') ladder *= u.mult;
     let pct = 0;
     for (const u of this.UPGRADES) if (s.ups[u.id] && u.type === 'syn') pct += u.pct;
-    click += this.baseCps * pct;
-    click *= this.globalMult();
-    this.cpc = click * (this.buffs.fever > 0 ? 15 : 1);
+    const fever = this.buffs.fever > 0 ? 15 : 1;
+    this.cpc = (ladder * gm + this.baseCps * pct) * fever;   // baseCps already carries gm — don't apply it twice
+    this.autoRate = rate;                       // robot clicks per second
+    this.autoCps = rate * ladder * gm * fever;  // robots click with your raw click power (no CPS synergy — that loop explodes)
+    this.cps = (cps + this.autoCps) * (this.buffs.frenzy > 0 ? 7 : 1);
   }
   bldPrice(b, n = 1) {
     const owned = this.s.bld[b.id];
     // geometric sum: base * 1.15^owned * (1.15^n - 1) / 0.15
-    return Math.ceil(b.cost * Math.pow(1.15, owned) * (Math.pow(1.15, n) - 1) / 0.15);
+    return Math.ceil(b.cost * Math.pow(1.12, owned) * (Math.pow(1.12, n) - 1) / 0.12);
   }
   maxBuyable(b) {
     const owned = this.s.bld[b.id];
-    const unit = b.cost * Math.pow(1.15, owned);
-    return Math.max(0, Math.floor(Math.log(1 + this.s.crystals * 0.15 / unit) / Math.log(1.15)));
+    const unit = b.cost * Math.pow(1.12, owned);
+    return Math.max(0, Math.floor(Math.log(1 + this.s.crystals * 0.12 / unit) / Math.log(1.12)));
   }
   buyCount(b) {   // how many the current buy-amount setting means for this building
     return this.s.buyAmt === 'max' ? Math.max(1, this.maxBuyable(b)) : this.s.buyAmt;
   }
   earn(n) {
-    this.s.crystals += n;
-    this.s.lifetimeRun += n;
-    this.s.lifetimeTotal += n;
+    const CAP = 1e303;   // the counter's physical limit — keeps the math finite
+    this.s.crystals = Math.min(CAP, this.s.crystals + n);
+    this.s.lifetimeRun = Math.min(CAP, this.s.lifetimeRun + n);
+    this.s.lifetimeTotal = Math.min(CAP, this.s.lifetimeTotal + n);
   }
   spend(n) {
     if (this.s.crystals < n) return false;
@@ -827,30 +929,31 @@ class Game {
     const s = this.s;
     s.goldenClicks++;
     this.audio.sample('golden', 0.55);
+    const prod = this.baseCps + this.autoCps;
     const roll = Math.random();
     if (roll < 0.35) {
-      this.buffs.frenzy = 20;
-      this.toast('📨', 'CRYSTAL FRENZY!', 'Production ×7 for 20 seconds!');
+      this.buffs.frenzy = 25;
+      this.toast('📨', 'CRYSTAL FRENZY!', 'Production ×7 for 25 seconds!');
     } else if (roll < 0.60) {
       this.buffs.fever = 13;
       this.toast('📨', 'CLICK FEVER!', 'Clicks ×15 for 13 seconds!');
     } else if (roll < 0.72 && this.critChance() > 0) {
       this.buffs.deadeye = 9;
       this.toast('📨', 'DEADEYE!', 'Every click crits for 9 seconds. YEEHAW.');
-    } else if (roll < 0.80 && this.baseCps > 0) {
-      const gain = Math.min(Math.max(s.crystals, 100) * 0.5, this.baseCps * 1800) + 99;
+    } else if (roll < 0.80 && prod > 0) {
+      const gain = Math.min(Math.max(s.crystals, 100) * 0.5, prod * 1800) + 99;
       this.earn(gain);
       this.toast('📨', 'TOWER BONANZA!', 'The tower sneezed. +' + fmt(gain) + ' crystals!');
       this.addFloat(this.packet.x, this.packet.y, '+' + fmt(gain), COLORS.magenta, 14);
     } else {
-      const gain = Math.max(88, Math.min(s.crystals * 0.15, this.baseCps * 600)) + 13;
+      const gain = Math.max(88, Math.min(s.crystals * 0.15, prod * 600)) + 13;
       this.earn(gain);
       this.toast('📨', 'LUCKY DROP!', '+' + fmt(gain) + ' crystals!');
       this.addFloat(this.packet.x, this.packet.y, '+' + fmt(gain), COLORS.yellow);
     }
     this.burst(this.packet.x, this.packet.y, 24, [COLORS.yellow, COLORS.orange, '#fff']);
     this.packet = null;
-    this.packetTimer = rand(60, 150) * this.goldFreqMult();
+    this.packetTimer = rand(40, 100) * this.goldFreqMult();
     this.recalc();
   }
   goldFreqMult() {
@@ -870,7 +973,7 @@ class Game {
   banditCaught() {
     const s = this.s;
     s.bounties++;
-    const gain = (Math.max(30, this.baseCps * 30) + 25) * (s.ups.wanted ? 2 : 1) * (s.ups.wanted2 ? 2 : 1);
+    const gain = (Math.max(30, (this.baseCps + this.autoCps) * 30) + 25) * (s.ups.wanted ? 2 : 1) * (s.ups.wanted2 ? 2 : 1);
     this.earn(gain);
     this.audio.sample('denied', 0.5);
     this.audio.crit();
@@ -881,9 +984,9 @@ class Game {
   }
 
   // ---------- prestige ----------
-  potentialStars() { return Math.floor(Math.cbrt(this.s.lifetimeTotal / 1e10)); }
+  potentialStars() { return Math.floor(Math.cbrt(this.s.lifetimeTotal / 5e9)); }
   claimableStars() { return Math.max(0, this.potentialStars() - this.s.stars); }
-  nextStarAt() { const n = this.s.stars + this.claimableStars() + 1; return 1e10 * n * n * n; }
+  nextStarAt() { const n = this.s.stars + this.claimableStars() + 1; return 5e9 * n * n * n; }
   towerHeight() {
     return Math.min(99999, Math.floor(1000 + 1000 * Math.log10(1 + this.s.lifetimeRun / 100) + 1000 * this.s.stars));
   }
@@ -894,6 +997,7 @@ class Game {
     const keep = {
       lifetimeTotal: s.lifetimeTotal, clicks: s.clicks, clickCrystals: s.clickCrystals,
       crits: s.crits, goldenClicks: s.goldenClicks, bounties: s.bounties, playTime: s.playTime,
+      numberTier: s.numberTier,
       ach: s.ach, skin: s.skin, sound: s.sound, musicOn: s.musicOn, buyAmt: s.buyAmt,
       offlineCollected: s.offlineCollected,
       stars: s.stars + claim, resets: s.resets + 1,
@@ -902,7 +1006,7 @@ class Game {
     this.buffs.frenzy = this.buffs.fever = 0;
     this.packet = null; this.bandit = null;
     this.audio.sample('prestige', 0.55);
-    this.toast('⭐', '+' + claim + ' SHERIFF STAR' + (claim > 1 ? 'S' : '') + '!', 'The tower rises. Production +' + (claim * 5) + '% forever.');
+    this.toast('⭐', '+' + claim + ' SHERIFF STAR' + (claim > 1 ? 'S' : '') + '!', 'The tower rises. Production +' + (claim * 10) + '% forever.');
     this.recalc(); this.shopDirty = true;
     this.save();
   }
@@ -929,6 +1033,21 @@ class Game {
     dom.toasts.appendChild(el);
     setTimeout(() => el.classList.add('bye'), 3800);
     setTimeout(() => el.remove(), 4300);
+  }
+
+  // ---------- NEW NUMBER celebrations (10^x affinity!) ----------
+  checkNumberTier() {
+    const s = this.s;
+    if (s.lifetimeTotal < 1e6) return;
+    const tier = Math.floor(Math.log10(s.lifetimeTotal) / 3);
+    if (tier <= s.numberTier) return;
+    s.numberTier = tier;
+    const word = NUM_WORDS[tier] || ('10^' + tier * 3);
+    const zeros = tier * 3;
+    this.audio.sample('prestige', 0.5);
+    this.toast('🔢', 'NEW NUMBER: ' + word + '!', `That's a 1 with ${zeros} zeros — 10^${zeros}!`);
+    this.celebrate = { text: word + '!', sub: '= 10^' + zeros, t: 3 };
+    this.burst(view.crystalX, view.crystalY - view.crystalR, 40, [COLORS.yellow, COLORS.cyan, COLORS.magenta, '#fff']);
   }
 
   // ---------- achievements ----------
@@ -966,9 +1085,9 @@ class Game {
       const away = (Date.now() - (s.lastSeen || Date.now())) / 1000;
       if (away > 60) {
         this.recalc();
-        const rate = s.ups.insurance ? 0.75 : 0.5;
-        const cap = s.ups.insurance ? 12 * 3600 : 8 * 3600;
-        const gain = this.baseCps * Math.min(away, cap) * rate;
+        const rate = s.ups.insurance ? 0.9 : 0.6;
+        const cap = s.ups.insurance ? 14 * 3600 : 10 * 3600;
+        const gain = (this.baseCps + this.autoCps) * Math.min(away, cap) * rate;
         if (gain >= 1) {
           this.earn(gain);
           s.offlineCollected++;
@@ -997,7 +1116,7 @@ class Game {
       }
     }
     if (dirtyBuff) this.recalc();
-    if (this.baseCps > 0) this.earn(this.cps * dt);
+    if (this.cps > 0) this.earn(this.cps * dt);
 
     // events
     if (!this.packet) {
@@ -1006,7 +1125,7 @@ class Game {
     } else {
       const p = this.packet;
       p.t += dt; p.x += p.vx * dt; p.y += Math.sin(p.t * 3 + p.wob) * 26 * dt;
-      if (p.x < -80 || p.x > view.w + 80) { this.packet = null; this.packetTimer = rand(45, 110) * this.goldFreqMult(); }
+      if (p.x < -80 || p.x > view.w + 80) { this.packet = null; this.packetTimer = rand(35, 90) * this.goldFreqMult(); }
     }
     if (!this.bandit) {
       this.banditTimer -= dt;
@@ -1015,11 +1134,19 @@ class Game {
       const b = this.bandit;
       if (b.denied > 0) {
         b.denied -= dt;
-        if (b.denied <= 0) { this.bandit = null; this.banditTimer = rand(40, 100) * (DEBUG.fast ? 0.05 : 1); }
+        if (b.denied <= 0) { this.bandit = null; this.banditTimer = rand(30, 80) * (DEBUG.fast ? 0.05 : 1); }
       } else {
         b.t += dt; b.x += b.dir * b.speed * dt;
-        if (b.x < -60 || b.x > view.w + 60) { this.bandit = null; this.banditTimer = rand(40, 100) * (DEBUG.fast ? 0.05 : 1); }
+        if (b.x < -60 || b.x > view.w + 60) { this.bandit = null; this.banditTimer = rand(30, 80) * (DEBUG.fast ? 0.05 : 1); }
       }
+    }
+
+    // a visible stream of income numbers pouring off the crystal
+    this.incomeT = (this.incomeT || 0) - dt;
+    if (this.cps > 0 && this.incomeT <= 0) {
+      this.incomeT = 1.1;
+      this.addFloat(view.crystalX + rand(-0.7, 0.7) * view.crystalR, view.crystalY - view.crystalR * 2.1,
+        '+' + fmt(this.cps * 1.1), this.buffs.frenzy > 0 ? COLORS.magenta : COLORS.green, 11);
     }
 
     // fx decay
@@ -1031,8 +1158,9 @@ class Game {
     for (const f of this.floats) { f.life -= dt; f.y += f.vy * dt; }
     this.floats = this.floats.filter(f => f.life > 0);
 
+    if (this.celebrate) { this.celebrate.t -= dt; if (this.celebrate.t <= 0) this.celebrate = null; }
     this.achTimer -= dt;
-    if (this.achTimer <= 0) { this.achTimer = 1; this.checkAchievements(); }
+    if (this.achTimer <= 0) { this.achTimer = 1; this.checkAchievements(); this.checkNumberTier(); }
     this.saveTimer += dt;
     if (this.saveTimer >= 15) { this.saveTimer = 0; this.save(); }
   }
@@ -1194,6 +1322,75 @@ function drawIcon(ctx, kind, px) {
       drawGlow(ctx, cx, cy - s * 1.1, s * 0.5, COLORS.cyan, 0.6);
       break;
     }
+    case 'autoclick': {
+      drawCube(ctx, cx - s * 0.15, cy + s * 0.1, s * 0.8, '#4a5e78', { seed: 11 });
+      drawFace(ctx, cx - s * 0.15, cy + s * 0.1, s * 0.8, { mood: 'happy', blink: 0, eyeCol: '#7fd4ff' });
+      drawCursorArrow(ctx, cx + s * 0.4, cy - s * 0.55, s * 0.75);
+      drawGlow(ctx, cx + s * 0.42, cy - s * 0.5, s * 0.3, COLORS.cyan, 0.5);
+      break;
+    }
+    case 'clickfarm': {
+      // barn
+      ctx.fillStyle = '#a03030'; ctx.strokeStyle = COLORS.outline; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      ctx.fillRect(cx - s * 0.65, cy - s * 0.25, s * 1.3, s * 0.75); ctx.strokeRect(cx - s * 0.65, cy - s * 0.25, s * 1.3, s * 0.75);
+      ctx.fillStyle = '#c04040';
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.75, cy - s * 0.25); ctx.lineTo(cx, cy - s * 0.75); ctx.lineTo(cx + s * 0.75, cy - s * 0.25); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // phones inside
+      ctx.fillStyle = '#0a2a1a';
+      for (let i = 0; i < 3; i++) { ctx.fillRect(cx - s * 0.5 + i * s * 0.38, cy - s * 0.1, s * 0.24, s * 0.42); }
+      ctx.fillStyle = COLORS.green;
+      for (let i = 0; i < 3; i++) { ctx.fillRect(cx - s * 0.47 + i * s * 0.38, cy - s * 0.05, s * 0.18, s * 0.28); }
+      drawCursorArrow(ctx, cx + s * 0.55, cy - s * 0.85, s * 0.45);
+      break;
+    }
+    case 'cursorfab': {
+      ctx.fillStyle = '#3a3a48'; ctx.strokeStyle = COLORS.outline; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      ctx.fillRect(cx - s * 0.65, cy - s * 0.15, s * 1.3, s * 0.65); ctx.strokeRect(cx - s * 0.65, cy - s * 0.15, s * 1.3, s * 0.65);
+      ctx.fillRect(cx - s * 0.5, cy - s * 0.55, s * 0.2, s * 0.4); ctx.strokeRect(cx - s * 0.5, cy - s * 0.55, s * 0.2, s * 0.4);
+      ctx.fillStyle = '#5c6070';
+      ctx.beginPath(); ctx.arc(cx - s * 0.4, cy - s * 0.68, s * 0.12, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx - s * 0.22, cy - s * 0.82, s * 0.09, 0, TAU); ctx.fill();
+      ctx.fillStyle = COLORS.yellow; ctx.fillRect(cx - s * 0.55, cy + s * 0.08, s * 1.1, s * 0.12);
+      drawCursorArrow(ctx, cx + s * 0.15, cy - s * 0.7, s * 0.5);
+      drawCursorArrow(ctx, cx + s * 0.5, cy - s * 0.45, s * 0.38);
+      break;
+    }
+    case 'moon': {
+      drawGlow(ctx, cx, cy - s * 0.1, s * 0.95, '#d8dee8', 0.4);
+      ctx.fillStyle = '#c8ced8'; ctx.strokeStyle = COLORS.outline; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, cy - s * 0.1, s * 0.62, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#9aa4b4';
+      ctx.beginPath(); ctx.arc(cx - s * 0.2, cy - s * 0.28, s * 0.13, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + s * 0.22, cy, s * 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx - s * 0.05, cy + s * 0.18, s * 0.07, 0, TAU); ctx.fill();
+      // drill
+      ctx.save(); ctx.translate(cx + s * 0.42, cy - s * 0.62); ctx.rotate(0.7);
+      ctx.fillStyle = '#7b4423'; ctx.fillRect(-s * 0.06, -s * 0.45, s * 0.12, s * 0.5); ctx.strokeRect(-s * 0.06, -s * 0.45, s * 0.12, s * 0.5);
+      drawCrystal(ctx, 0, s * 0.15, s * 0.22, s * 0.3, COLORS.cyan);
+      ctx.restore();
+      break;
+    }
+    case 'nebula': {
+      drawGlow(ctx, cx, cy, s * 1.1, COLORS.purple, 0.6);
+      drawGlow(ctx, cx - s * 0.3, cy - s * 0.2, s * 0.6, COLORS.magenta, 0.5);
+      for (let i = 0; i < 6; i++) {
+        const a = i * TAU / 6 + 0.5, r = s * (0.25 + (i % 3) * 0.14);
+        drawCrystal(ctx, cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.7, s * 0.14, s * 0.24, i % 2 ? COLORS.purple : COLORS.magenta, a);
+      }
+      drawCrystal(ctx, cx, cy, s * 0.26, s * 0.44, '#ffffff');
+      break;
+    }
+    case 'cubeverse': {
+      ctx.strokeStyle = COLORS.magenta; ctx.lineWidth = s * 0.14; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.42, s * 0.68, 0, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = rgba(COLORS.cyan, 0.8); ctx.lineWidth = s * 0.05;
+      ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.56, s * 0.82, 0, 0, TAU); ctx.stroke();
+      ctx.fillStyle = '#12041a'; ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.34, s * 0.6, 0, 0, TAU); ctx.fill();
+      drawCube(ctx, cx - s * 0.1, cy - s * 0.18, s * 0.26, COLORS.yellow, { seed: 12 });
+      drawCube(ctx, cx + s * 0.12, cy + s * 0.14, s * 0.2, COLORS.cyan, { seed: 13, rot: 0.4 });
+      drawGlow(ctx, cx, cy, s * 0.5, COLORS.magenta, 0.4);
+      break;
+    }
     case 'click': { drawSheriffStar(ctx, cx, cy - s * 0.1, s * 0.75, COLORS.yellow); break; }
     case 'syn': {
       drawCube(ctx, cx - s * 0.3, cy + s * 0.1, s * 0.65, COLORS.yellow, { seed: 2 });
@@ -1210,6 +1407,18 @@ function drawIcon(ctx, kind, px) {
   }
 }
 function drawHoodAt(ctx, x, y, s) { ctx.save(); ctx.translate(x, y); drawHood(ctx, s); ctx.restore(); }
+/** Classic white pointer cursor, tip at (x, y). */
+function drawCursorArrow(ctx, x, y, s, col = '#ffffff') {
+  ctx.save(); ctx.translate(x, y);
+  ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1.5, s * 0.1); ctx.strokeStyle = COLORS.outline;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, s); ctx.lineTo(s * 0.26, s * 0.78);
+  ctx.lineTo(s * 0.42, s * 1.1); ctx.lineTo(s * 0.58, s * 1.02);
+  ctx.lineTo(s * 0.42, s * 0.7); ctx.lineTo(s * 0.72, s * 0.7);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
 function drawEnvelope(ctx, x, y, w) {
   const h = w * 0.68;
   ctx.save(); ctx.translate(x, y);
@@ -1246,13 +1455,17 @@ function resizeCanvas() {
 function drawScene(ctx, g, t) {
   const W = view.w, H = view.h, s = g.s;
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-  // sky
+  // sky (tinted by the biggest number you've reached)
+  const tier = crystalTier(g);
+  const tierCol = CRYSTAL_TIERS[tier % CRYSTAL_TIERS.length];
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, '#08081a'); sky.addColorStop(0.55, '#0d0d24'); sky.addColorStop(1, '#141433');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-  // drifting binary
+  if (tier > 0) { ctx.fillStyle = rgba(tierCol, Math.min(0.07, 0.015 * tier)); ctx.fillRect(0, 0, W, H); }
+  // drifting binary — denser as the numbers grow
   ctx.font = font(9); ctx.textAlign = 'center';
-  for (let i = 0; i < 14; i++) {
+  const bins = 14 + Math.min(26, tier * 3);
+  for (let i = 0; i < bins; i++) {
     const bx = (hash2(i, 7) * W + t * (6 + i)) % (W + 40) - 20;
     const by = hash2(i, 13) * view.floorY * 0.85;
     ctx.fillStyle = rgba(i % 3 ? COLORS.cyan : COLORS.magenta, 0.05 + 0.05 * (i % 4));
@@ -1307,6 +1520,15 @@ function drawScene(ctx, g, t) {
   for (const f of g.floats) {
     chunkyText(ctx, f.text, f.x, f.y, f.size, f.color, { alpha: clamp(f.life, 0, 1) });
   }
+  // NEW NUMBER celebration
+  if (g.celebrate) {
+    const c = g.celebrate, k = c.t / 3;
+    const a = clamp(k < 0.85 ? 1 : (1 - k) / 0.15, 0, 1) * clamp(c.t * 3, 0, 1);
+    const size = clamp(W * 0.055, 22, 52) * (1 + 0.06 * Math.sin(t * 8));
+    chunkyText(ctx, 'NEW NUMBER!', W / 2, H * 0.24 - (1 - k) * 12, size * 0.42, '#ffffff', { alpha: a, glow: COLORS.cyan });
+    chunkyText(ctx, c.text, W / 2, H * 0.32 - (1 - k) * 12, size, COLORS.yellow, { alpha: a, glow: COLORS.yellow });
+    chunkyText(ctx, c.sub, W / 2, H * 0.40 - (1 - k) * 12, size * 0.5, COLORS.cyan, { alpha: a, glow: COLORS.cyan });
+  }
   // hint
   if (s.clicks < 5) {
     chunkyText(ctx, 'CLICK THE MEGA CRYSTAL!', view.crystalX, view.crystalY - view.crystalR - 46 + Math.sin(t * 3) * 5, 12, COLORS.yellow, { glow: COLORS.yellow });
@@ -1331,32 +1553,58 @@ function drawTower(ctx, g, x, t) {
   }
   drawCrystal(ctx, x, top - 14, w * 0.55, w * 0.95, COLORS.cyan, Math.sin(t * 1.4) * 0.08);
   drawGlow(ctx, x, top - 14, 12, '#ffffff', 0.8);
+  // one sheriff star pinned to the tower per prestige (up to 8)
+  const nStars = Math.min(8, g.s.stars);
+  for (let i = 0; i < nStars; i++) {
+    drawSheriffStar(ctx, x + (i % 2 ? w * 0.75 : -w * 0.75), top + 26 + i * Math.max(18, hPix / 9), w * 0.28, COLORS.yellow);
+  }
   chunkyText(ctx, hMeters + 'm', x, top - w * 1.15, clamp(view.w * 0.014, 9, 13), hMeters >= 99999 ? COLORS.yellow : COLORS.cyan, { glow: COLORS.cyan });
   ctx.restore();
 }
 
+/** The mega crystal levels up visually with every named number reached. */
+const CRYSTAL_TIERS = [COLORS.cyan, '#4dff88', '#ffd21f', '#ff9a1f', '#ff5fb8', '#ff2bd6', '#a052ff', '#ff3355', '#7df9ff', '#ffffff'];
+function crystalTier(g) { return clamp((g.s.numberTier | 0) - 1, 0, 30); }
+
 function drawMegaCrystal(ctx, g, t) {
-  const R = view.crystalR;
+  const tier = crystalTier(g);
+  const R = view.crystalR * (1 + Math.min(0.42, tier * 0.045));
   const pulse = 1 + Math.sin(t * 2.2) * 0.02 + g.clickPulse * 0.09;
   const x = view.crystalX, y = view.crystalY - R * 0.95;
-  drawGlow(ctx, x, view.crystalY, R * 2.4, g.buffs.fever > 0 ? COLORS.yellow : COLORS.cyan, 0.4 + g.clickPulse * 0.3);
+  const tierCol = CRYSTAL_TIERS[tier % CRYSTAL_TIERS.length];
+  drawGlow(ctx, x, view.crystalY, R * 2.4, g.buffs.fever > 0 ? COLORS.yellow : tierCol, 0.4 + g.clickPulse * 0.3);
   // pedestal
   ctx.fillStyle = '#0e1a2a'; ctx.strokeStyle = COLORS.outline; ctx.lineWidth = 3; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.ellipse(x, view.crystalY + 8, R * 0.95, R * 0.26, 0, 0, TAU); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = rgba(COLORS.cyan, 0.5); ctx.lineWidth = 1.5;
+  ctx.strokeStyle = rgba(tierCol, 0.5); ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.ellipse(x, view.crystalY + 4, R * 0.8, R * 0.2, 0, 0, TAU); ctx.stroke();
   ctx.save();
   ctx.translate(x, y); ctx.scale(pulse, 1 + (pulse - 1) * 1.6);
-  const col = g.buffs.fever > 0 ? COLORS.yellow : (g.buffs.frenzy > 0 ? COLORS.magenta : COLORS.cyan);
+  const col = g.buffs.fever > 0 ? COLORS.yellow : (g.buffs.frenzy > 0 ? COLORS.magenta : tierCol);
   drawCrystal(ctx, 0, 0, R * 1.15, R * 1.9, col, Math.sin(t * 0.9) * 0.03);
   // inner shine
   ctx.globalAlpha = 0.5 + 0.2 * Math.sin(t * 3.5);
   drawCrystal(ctx, -R * 0.14, -R * 0.2, R * 0.3, R * 0.6, '#ffffff', -0.2, 0.6);
   ctx.restore();
-  // orbiting shards
-  for (let i = 0; i < 4; i++) {
-    const a = t * 1.2 + i * TAU / 4;
-    drawCrystal(ctx, x + Math.cos(a) * R * 1.35, y + Math.sin(a) * R * 0.5, 10, 18, i % 2 ? COLORS.magenta : COLORS.cyan, a);
+  // orbiting shards: one more per named number
+  const shards = 4 + Math.min(8, tier);
+  for (let i = 0; i < shards; i++) {
+    const a = t * 1.2 + i * TAU / shards;
+    drawCrystal(ctx, x + Math.cos(a) * R * 1.35, y + Math.sin(a) * R * 0.5, 10, 18, i % 2 ? COLORS.magenta : tierCol, a);
+  }
+  // robot fingers: the auto-clicker army bonks the crystal
+  if (g.autoRate > 0) {
+    const n = clamp(1 + Math.floor(Math.log10(g.autoRate + 1)), 1, 6);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI * 0.85 + i * (Math.PI * 0.7) / Math.max(1, n - 1 || 1);
+      const bonk = Math.max(0, Math.sin(t * (3 + i * 0.7) + i * 2.1));
+      const cxr = x + Math.cos(a) * (R * 1.5 - bonk * R * 0.25);
+      const cyr = y + Math.sin(a) * (R * 1.1 - bonk * R * 0.2);
+      ctx.save(); ctx.translate(cxr, cyr); ctx.rotate(a + Math.PI / 2 + 0.5);
+      drawCursorArrow(ctx, 0, 0, clamp(R * 0.22, 14, 26));
+      ctx.restore();
+      if (bonk > 0.96) drawGlow(ctx, x + Math.cos(a) * R * 0.9, y + Math.sin(a) * R * 0.7, 12, '#ffffff', 0.8);
+    }
   }
 }
 
@@ -1454,7 +1702,7 @@ function drawBandit(ctx, b, t) {
 const dom = {};
 function grabDom() {
   for (const id of ['scene', 'stage', 'buffs', 'skinbar', 'upgrades', 'buildings', 'tooltip', 'toasts',
-    'stCrystals', 'stCps', 'stCpc', 'stHeight', 'stStars', 'twHeight', 'twStars', 'twClaim', 'twNext',
+    'stCrystals', 'stPow', 'stCps', 'stCpc', 'stHeight', 'stStars', 'twHeight', 'twStars', 'twClaim', 'twNext',
     'btnPrestige', 'statlist', 'achgrid', 'achCount', 'modalwrap', 'modal', 'buyamt',
     'btnSound', 'btnMusic', 'btnSave', 'btnWipe'])
     dom[id] = document.getElementById(id);
@@ -1488,12 +1736,14 @@ function rebuildShop(g) {
     btn.addEventListener('click', () => { g.buyUpgrade(u.id); });
     attachTooltip(btn, () => {
       const eff = u.type === 'bld' ? BLD[u.bld].name + ' output ×' + u.mult
+        : u.type === 'autox2' ? 'All auto-click buildings ×2'
+        : u.type === 'crit' ? 'Crit chance +' + Math.round(u.pct * 100) + '% (crits are ×10)'
         : u.type === 'click' ? 'Click power ×' + u.mult
         : u.type === 'syn' ? 'Clicks gain +' + Math.round(u.pct * 100) + '% of your /sec'
         : u.type === 'global' ? 'EVERYTHING ×' + u.mult
         : u.type === 'goldFreq' ? 'Golden spam packets +25% frequency'
         : u.type === 'bounty2' ? 'Bounty hackers pay ×2'
-        : u.type === 'offline' ? 'Offline earnings: 75% for up to 12h'
+        : u.type === 'offline' ? 'Offline earnings: 90% for up to 14h'
         : u.type === 'bosses' ? 'Boss buildings ×2'
         : '';
       return `<h4>${u.name}</h4><div class="info">${eff}</div><div class="flavor">“${u.flavor}”</div><div class="price${s.crystals >= u.cost ? '' : ' no'}">💎 ${fmt(u.cost)}</div>`;
@@ -1522,16 +1772,21 @@ function rebuildShop(g) {
     info.innerHTML = `<div class="nm"></div><div class="cost"></div><div class="each"></div>`;
     info.querySelector('.nm').textContent = mystery ? '???' : b.name;
     info.querySelector('.cost').textContent = '💎 ' + fmt(price) + (n > 1 ? '  (x' + fmt(n) + ')' : '');
-    info.querySelector('.each').textContent = mystery ? 'keep mining...' : fmtRate(b.cps * g.bldMult(b.id) * g.globalMult()) + ' /sec each';
+    info.querySelector('.each').textContent = mystery ? 'keep mining...'
+      : b.clickRate ? fmtRate(b.clickRate * g.bldMult(b.id)) + ' auto-clicks/sec each'
+      : fmtRate(b.cps * g.bldMult(b.id) * g.globalMult()) + ' /sec each';
     const cnt = document.createElement('div'); cnt.className = 'n'; cnt.textContent = owned || '';
     row.appendChild(cv); row.appendChild(info); row.appendChild(cnt);
     if (!mystery) {
       row.addEventListener('click', () => g.buyBuilding(b.id));
       attachTooltip(row, () => {
         const nn = g.buyCount(b), pp = g.bldPrice(b, nn);
-        const total = b.cps * s.bld[b.id] * g.bldMult(b.id) * g.globalMult();
+        const owned2 = s.bld[b.id];
+        const prodTxt = !owned2 ? ''
+          : b.clickRate ? ' · ' + fmtRate(b.clickRate * owned2 * g.bldMult(b.id)) + ' auto-clicks/sec (' + fmtRate(b.clickRate * owned2 * g.bldMult(b.id) * g.cpc) + ' /sec)'
+          : ' · producing ' + fmtRate(b.cps * owned2 * g.bldMult(b.id) * g.globalMult()) + ' /sec';
         return `<h4>${b.name}</h4><div class="flavor">“${b.flavor}”</div>` +
-          `<div class="info">Owned: ${s.bld[b.id]}${s.bld[b.id] ? ' · producing ' + fmtRate(total) + ' /sec' : ''}</div>` +
+          `<div class="info">Owned: ${owned2}${prodTxt}</div>` +
           `<div class="price${s.crystals >= pp ? '' : ' no'}">💎 ${fmt(pp)} for ${fmt(nn)}</div>`;
       });
     }
@@ -1581,8 +1836,10 @@ function rebuildShop(g) {
     ['Bounties collected', fmt(s.bounties)],
     ['Posse size', fmt(totalBuildings(s))],
     ['Upgrades owned', Object.keys(s.ups).length + '/' + g.UPGRADES.length],
-    ['Sheriff Stars', fmt(s.stars) + ' ★  (+' + (s.stars * 5) + '%)'],
-    ['Achievement bonus', '+' + Object.keys(s.ach).length + '%'],
+    ['Sheriff Stars', fmt(s.stars) + ' ★  (+' + (s.stars * 10) + '%)'],
+    ['Biggest number named', (NUM_WORDS[s.numberTier] || '10^' + s.numberTier * 3) + ' (10^' + s.numberTier * 3 + ')'],
+    ['Robot clicks per second', fmtRate(g.autoRate || 0)],
+    ['Achievement bonus', '+' + Object.keys(s.ach).length * 2 + '%'],
     ['Towers raised', fmt(s.resets)],
     ['Time on duty', fmtTime(s.playTime)],
   ];
@@ -1592,6 +1849,7 @@ function rebuildShop(g) {
 function updateHud(g) {
   const s = g.s;
   dom.stCrystals.textContent = fmt(s.crystals);
+  dom.stPow.textContent = s.crystals >= 1000 ? '= 10^' + Math.floor(Math.log10(s.crystals)) : '';
   dom.stCps.firstElementChild.textContent = fmtRate(g.cps);
   dom.stCpc.firstElementChild.textContent = fmt(Math.max(1, g.cpc));
   dom.stHeight.firstElementChild.textContent = g.towerHeight() + 'm';
