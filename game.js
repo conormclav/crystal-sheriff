@@ -1467,8 +1467,42 @@ function resizeCanvas() {
   view.crystalR = clamp(Math.min(view.w, view.h) * 0.19, 54, 150);
 }
 
+/** Matrix-style green code raining down the whole screen — Crystal Frenzy atmosphere. */
+const RAIN_GLYPHS = '01234567890101ABCDEF<>*+=$#01';
+function drawCodeRain(ctx, t, alpha) {
+  const W = view.w, H = view.h;
+  const ch = view.narrow ? 15 : 18;                 // row spacing / glyph size
+  const colW = view.narrow ? 15 : 18;
+  let cols = Math.ceil(W / colW);
+  if (PERF.low) cols = Math.ceil(cols / 2);          // half the columns on weak devices
+  const step = PERF.low ? 2 : 1;
+  ctx.save();
+  ctx.font = font(ch * 0.9); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let c = 0; c < cols; c += step) {
+    const x = c * colW + colW / 2;
+    const speed = (90 + hash2(c, 1) * 220) * (PERF.low ? 0.8 : 1);
+    const span = H + ch * 26;
+    const head = ((t * speed + hash2(c, 2) * span * 2) % span) - ch * 8;
+    const trail = 6 + Math.floor(hash2(c, 3) * (PERF.low ? 6 : 12));
+    for (let k = 0; k <= trail; k++) {
+      const y = head - k * ch;
+      if (y < -ch || y > H + ch) continue;
+      const row = Math.round(y / ch);
+      const gi = (Math.floor(hash2(c * 31 + row, 7) * RAIN_GLYPHS.length) + Math.floor(t * 3 + row) * (row & 3)) % RAIN_GLYPHS.length;
+      const glyph = RAIN_GLYPHS[(gi + RAIN_GLYPHS.length) % RAIN_GLYPHS.length];
+      const fade = 1 - k / (trail + 1);
+      if (k === 0) { ctx.fillStyle = rgba('#eafff2', alpha); }               // bright leading glyph
+      else { ctx.fillStyle = rgba(COLORS.green, alpha * fade * 0.85); }
+      ctx.fillText(glyph, x, y);
+    }
+  }
+  ctx.restore();
+}
+
 function drawScene(ctx, g, t) {
   const W = view.w, H = view.h, s = g.s;
+  const frenzy = g.buffs.frenzy > 0;
+  const frenzyA = clamp(g.buffs.frenzy, 0, 1);   // fades out over the last second
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   // sky (tinted by the biggest number you've reached)
   const tier = crystalTier(g);
@@ -1486,8 +1520,13 @@ function drawScene(ctx, g, t) {
     ctx.fillStyle = rgba(i % 3 ? COLORS.cyan : COLORS.magenta, 0.05 + 0.05 * (i % 4));
     ctx.fillText(i % 2 ? '0101' : '1010', bx, by);
   }
+  // CRYSTAL FRENZY: green code rains down the screen + a green tint over the sky
+  if (frenzy) {
+    ctx.fillStyle = rgba('#031a0c', frenzyA * 0.35); ctx.fillRect(0, 0, W, H);
+    drawCodeRain(ctx, t, frenzyA * 0.9);
+  }
   // the tower (background, height grows with progress)
-  drawTower(ctx, g, W * 0.14, t);
+  drawTower(ctx, g, W * 0.14, t, frenzy);
   // floor
   const horizon = view.floorY - 40;
   ctx.fillStyle = '#0a0a1c'; ctx.fillRect(0, horizon, W, H - horizon);
@@ -1550,30 +1589,33 @@ function drawScene(ctx, g, t) {
   }
 }
 
-function drawTower(ctx, g, x, t) {
+function drawTower(ctx, g, x, t, frenzy) {
   const hMeters = g.towerHeight();
   const frac = clamp(Math.log10(1 + hMeters - 999) / 5, 0.12, 1);
   const base = view.floorY - 34;
   const hPix = (view.h * 0.62) * frac + 60;
   const top = base - hPix, w = clamp(view.w * 0.045, 24, 46);
+  // gold palette while Crystal Frenzy is active
+  const accent = frenzy ? COLORS.yellow : COLORS.cyan;
+  const bodyCol = frenzy ? '#2e2408' : '#0e1a2a';
   ctx.save();
-  drawGlow(ctx, x, top, w * 1.6, COLORS.cyan, 0.35 + 0.08 * Math.sin(t * 3));
-  ctx.fillStyle = '#0e1a2a'; ctx.strokeStyle = COLORS.outline; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  drawGlow(ctx, x, top, w * (frenzy ? 2.1 : 1.6), accent, (frenzy ? 0.5 : 0.35) + 0.08 * Math.sin(t * 3));
+  ctx.fillStyle = bodyCol; ctx.strokeStyle = frenzy ? shade(COLORS.yellow, -0.4) : COLORS.outline; ctx.lineWidth = 3; ctx.lineJoin = 'round';
   ctx.fillRect(x - w / 2, top, w, hPix); ctx.strokeRect(x - w / 2, top, w, hPix);
-  ctx.strokeStyle = rgba(COLORS.cyan, 0.5); ctx.lineWidth = 1.5;
+  ctx.strokeStyle = rgba(accent, frenzy ? 0.7 : 0.5); ctx.lineWidth = 1.5;
   const rows = Math.max(2, Math.floor(hPix / (w * 0.9)));
   for (let i = 0; i < rows; i++) {
     const wy = top + 8 + i * (hPix - 16) / rows;
     ctx.strokeRect(x - w * 0.3, wy, w * 0.6, (hPix - 16) / rows * 0.55);
   }
-  drawCrystal(ctx, x, top - 14, w * 0.55, w * 0.95, COLORS.cyan, Math.sin(t * 1.4) * 0.08);
+  drawCrystal(ctx, x, top - 14, w * 0.55, w * 0.95, accent, Math.sin(t * 1.4) * 0.08);
   drawGlow(ctx, x, top - 14, 12, '#ffffff', 0.8);
   // one sheriff star pinned to the tower per prestige (up to 8)
   const nStars = Math.min(8, g.s.stars);
   for (let i = 0; i < nStars; i++) {
     drawSheriffStar(ctx, x + (i % 2 ? w * 0.75 : -w * 0.75), top + 26 + i * Math.max(18, hPix / 9), w * 0.28, COLORS.yellow);
   }
-  chunkyText(ctx, hMeters + 'm', x, top - w * 1.15, clamp(view.w * 0.014, 9, 13), hMeters >= 99999 ? COLORS.yellow : COLORS.cyan, { glow: COLORS.cyan });
+  chunkyText(ctx, hMeters + 'm', x, top - w * 1.15, clamp(view.w * 0.014, 9, 13), (frenzy || hMeters >= 99999) ? COLORS.yellow : COLORS.cyan, { glow: accent });
   ctx.restore();
 }
 
