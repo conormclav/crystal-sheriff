@@ -12,7 +12,7 @@
 <div id="app">
 
   <header id="topbar">
-    <div id="brand"><span class="star">★</span> CRYSTAL SHERIFF: <b>CRYSTAL CLICKER</b></div>
+    <div id="brand"><span class="star">★</span> <span class="long">CRYSTAL SHERIFF: </span><b>CRYSTAL CLICKER</b></div>
     <div id="topbtns">
       <button id="btnSound" class="iconbtn" title="Sound effects (M)">🔊</button>
       <button id="btnMusic" class="iconbtn" title="Music">🎵</button>
@@ -22,19 +22,23 @@
   </header>
 
   <div id="statsbar">
-    <div class="stat"><b id="stCrystals">0</b> <span class="lbl">💎</span> <span id="stPow" title="Your crystals as a power of ten"></span></div>
-    <div class="stat" id="stCps"><b>0</b> <span class="lbl">/SEC</span></div>
-    <div class="stat" id="stCpc"><b>1</b> <span class="lbl">/CLICK</span></div>
-    <div class="stat" id="stHeight"><b>1000m</b> <span class="lbl">TOWER</span></div>
-    <div class="stat" id="stStars" title="Sheriff Stars: permanent production bonus"><b>0</b> <span class="lbl">★</span></div>
+    <div id="statMain"><b id="stCrystals">0</b> <span class="lbl">💎</span> <span id="stPow" title="Your crystals as a power of ten"></span></div>
+    <div id="statSub">
+      <div class="stat" id="stCps"><b>0</b> <span class="lbl">/SEC</span></div>
+      <div class="stat" id="stCpc"><b>1</b> <span class="lbl">/CLICK</span></div>
+      <div class="stat" id="stHeight"><b>1000m</b> <span class="lbl">TOWER</span></div>
+      <div class="stat" id="stStars" title="Sheriff Stars: permanent production bonus"><b>0</b> <span class="lbl">★</span></div>
+    </div>
   </div>
 
   <div id="ticker"><span id="tickerText">FRONTIER NEWS: sheriff boots up. Crystal awaits.</span></div>
 
   <main>
-    <section id="stage">
-      <canvas id="scene"></canvas>
-      <div id="buffs"></div>
+    <section id="stageCol">
+      <div id="stage">
+        <canvas id="scene"></canvas>
+        <div id="buffs"></div>
+      </div>
       <div id="skinbar"></div>
     </section>
 

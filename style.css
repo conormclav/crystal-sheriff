@@ -98,15 +98,19 @@ button {
 
 /* ---------- stats bar ---------- */
 #statsbar {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px;
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 4px 18px;
   padding: 8px 14px;
   background: rgba(8, 8, 18, 0.9);
   border-bottom: 2px solid rgba(255, 43, 214, 0.25);
 }
+#statMain { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; }
+#statSub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; min-width: 0; }
 .stat { color: #9fb8c8; font-size: 9px; white-space: nowrap; }
 .stat b { color: #fff; font-size: 11px; }
-#stCrystals { color: var(--cyan); font-size: clamp(14px, 2.4vw, 20px); text-shadow: 2px 2px 0 var(--ink), 0 0 14px rgba(25, 230, 255, 0.55); }
+#stCrystals { color: var(--cyan); font-size: clamp(15px, 2.4vw, 20px); text-shadow: 2px 2px 0 var(--ink), 0 0 14px rgba(25, 230, 255, 0.55); }
 #stPow { color: var(--magenta); font-size: 8px; opacity: 0.9; }
+#statMain .lbl { opacity: 0.75; }
 #stCps b { color: var(--green); }
 #stCpc b { color: var(--yellow); }
 #stHeight b { color: var(--magenta); }
@@ -121,7 +125,8 @@ main {
 }
 
 /* ---------- stage ---------- */
-#stage { position: relative; min-height: 0; overflow: hidden; }
+#stageCol { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+#stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
 
 #buffs {
@@ -142,17 +147,19 @@ main {
 .buff.fever { color: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 14px rgba(255, 210, 31, 0.5); }
 @keyframes buffpop { from { transform: scale(0.6); opacity: 0; } }
 
+/* skin strip: its own row under the arena — never covers the scene */
 #skinbar {
-  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
-  display: flex; gap: 6px;
-  padding: 5px;
-  background: rgba(8, 8, 18, 0.75);
-  border: 2px solid rgba(25, 230, 255, 0.25);
-  border-radius: 8px;
-  max-width: calc(100% - 16px);
+  flex: none;
+  display: flex; gap: 6px; justify-content: center;
+  padding: 5px 8px;
+  background: rgba(8, 8, 18, 0.85);
+  border-top: 2px solid rgba(25, 230, 255, 0.2);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+#skinbar::-webkit-scrollbar { display: none; }
 .skinbtn {
-  width: 44px; height: 44px;
+  width: 42px; height: 42px;
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   background: rgba(20, 20, 40, 0.8);
@@ -160,7 +167,7 @@ main {
   position: relative;
   flex: none;
 }
-.skinbtn canvas { width: 36px; height: 36px; image-rendering: auto; }
+.skinbtn canvas { width: 34px; height: 34px; image-rendering: auto; }
 .skinbtn.on { border-color: var(--yellow); box-shadow: 0 0 10px rgba(255, 210, 31, 0.5); }
 .skinbtn.locked { filter: grayscale(1) brightness(0.5); }
 .skinbtn.locked::after {
@@ -368,32 +375,62 @@ main {
 
 [hidden] { display: none !important; }
 
-/* ---------- responsive (portrait phones: stage on top, shop scrolls below) ---------- */
+/* ---------- responsive (portrait phones: arena on top, shop scrolls below) ---------- */
 @media (max-width: 860px) {
-  main { grid-template-columns: 1fr; grid-template-rows: minmax(280px, 44vh) 1fr; }
+  main { grid-template-columns: 1fr; grid-template-rows: minmax(300px, 47vh) 1fr; }
   #shop { border-left: none; border-top: 2px solid var(--line); }
   body { font-size: 9px; }
-  #skinbar { overflow-x: auto; scrollbar-width: none; }
-  #statsbar { gap: 3px 12px; padding: 6px 10px; }
-  #topbar { padding: 6px 8px; }
-  .bld { grid-template-columns: 40px 1fr auto; }
-  .bld canvas { width: 40px; height: 40px; }
-  #toasts { max-width: 62vw; }
+
+  /* one slim header line */
+  #topbar { padding: 5px 8px; gap: 6px; }
+  #brand { font-size: 10px; }
+  .iconbtn { width: 36px; height: 36px; font-size: 13px; flex: none; }
+
+  /* the big number takes center stage; the rest becomes a small centered row */
+  #statsbar { flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; }
+  #statMain { justify-content: center; }
+  #stCrystals { font-size: clamp(20px, 6.5vw, 26px); }
+  #stPow { font-size: 9px; }
+  #statSub { justify-content: center; gap: 3px 12px; }
+  .stat { font-size: 8px; }
+  .stat b { font-size: 10px; }
+
+  #ticker { padding: 4px 10px; font-size: 7px; }
+
+  /* skin strip: compact, scrollable, left-aligned so nothing hides off the center */
+  #skinbar { justify-content: flex-start; padding: 4px 6px; gap: 5px; }
+  .skinbtn { width: 40px; height: 40px; }
+  .skinbtn canvas { width: 32px; height: 32px; }
+
+  /* shop breathing room */
+  .tab { padding: 8px; }
+  .bld { grid-template-columns: 42px 1fr auto; padding: 9px 8px; margin-bottom: 7px; gap: 9px; }
+  .bld canvas { width: 42px; height: 42px; }
+  .bld .nm { font-size: 9px; line-height: 1.5; }
+  .bld .cost, .bld .each { margin-top: 4px; }
+  #tabs button { padding: 12px 4px; font-size: 9px; }
+
+  #toasts { max-width: 62vw; top: 148px; }
   .toast { padding: 7px 10px; }
   .toast .ico { font-size: 15px; }
+  #buffs { top: 6px; width: 100%; }
+  .buff { font-size: 8px; padding: 5px 9px; }
+}
+
+/* very narrow phones: drop the long half of the title */
+@media (max-width: 540px) {
+  #brand .long { display: none; }
 }
 
 /* landscape phones / short windows: compress the chrome, keep panels side by side */
 @media (max-height: 520px) {
   #ticker { display: none; }
+  #skinbar { display: none; }   /* rotate to portrait to change skins */
   #topbar { padding: 4px 10px; }
   #statsbar { padding: 3px 10px; }
-  .iconbtn { width: 28px; height: 28px; font-size: 11px; }
+  .iconbtn { width: 30px; height: 30px; font-size: 11px; }
   #tabs button { padding: 6px 4px; }
   .tab { padding: 6px; }
-  #skinbar { bottom: 4px; padding: 3px; }
-  .skinbtn { width: 36px; height: 36px; }
-  .skinbtn canvas { width: 30px; height: 30px; }
 }
 @media (max-height: 520px) and (min-width: 640px) {
   main { grid-template-columns: 1fr minmax(250px, 320px); }
@@ -401,9 +438,9 @@ main {
 
 /* touch screens: bigger tap targets, no hover-dependent affordances */
 @media (pointer: coarse) {
-  .iconbtn { width: 40px; height: 40px; }
+  .iconbtn { min-width: 38px; min-height: 38px; }
   .upg { width: 52px; height: 52px; }
   .upg canvas { width: 42px; height: 42px; }
-  #buyamt button { padding: 6px 10px; }
-  #tabs button { padding: 12px 4px; }
+  #buyamt button { padding: 7px 11px; }
+  .skinbtn { min-width: 42px; min-height: 42px; }
 }

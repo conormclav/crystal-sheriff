@@ -21,6 +21,9 @@ const COLORS = {
   black: '#15151f', white: '#ffffff', orange: '#ff9a1f', outline: '#07070d',
 };
 
+/* Adaptive quality: if a device can't hold ~25fps, drop to a lighter scene once. */
+const PERF = { low: false, acc: 0, n: 0 };
+
 const _rgbCache = new Map();
 function hexToRgb(hex) {
   let c = _rgbCache.get(hex);
@@ -100,6 +103,7 @@ function glowSprite(color) {
   return c;
 }
 function drawGlow(ctx, x, y, r, color, alpha = 1) {
+  if (PERF.low && r < 60) return;   // small glows are pure fill-rate cost on weak phones
   ctx.globalAlpha = alpha;
   ctx.drawImage(glowSprite(color), x - r, y - r, r * 2, r * 2);
   ctx.globalAlpha = 1;
@@ -1024,7 +1028,8 @@ class Game {
     if (this.parts.length > 220) this.parts.splice(0, this.parts.length - 220);
   }
   toast(ico, t1, t2) {
-    while (dom.toasts.children.length >= 5) dom.toasts.firstChild.remove();
+    const cap = window.innerWidth < 860 ? 2 : 5;   // don't bury the arena on phones
+    while (dom.toasts.children.length >= cap) dom.toasts.firstChild.remove();
     const el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = `<div class="ico">${ico}</div><div><div class="t1"></div><div class="t2"></div></div>`;
@@ -1145,8 +1150,11 @@ class Game {
     this.incomeT = (this.incomeT || 0) - dt;
     if (this.cps > 0 && this.incomeT <= 0) {
       this.incomeT = 1.1;
-      this.addFloat(view.crystalX + rand(-0.7, 0.7) * view.crystalR, view.crystalY - view.crystalR * 2.1,
-        '+' + fmt(this.cps * 1.1), this.buffs.frenzy > 0 ? COLORS.magenta : COLORS.green, 11);
+      const gain = this.cps * 1.1;
+      if (gain >= 0.5) {   // never show a useless "+0"
+        this.addFloat(view.crystalX + rand(-0.7, 0.7) * view.crystalR, view.crystalY - view.crystalR * 2.1,
+          '+' + fmtRate(gain), this.buffs.frenzy > 0 ? COLORS.magenta : COLORS.green, 11);
+      }
     }
 
     // fx decay
@@ -1442,14 +1450,15 @@ const view = { w: 900, h: 600, dpr: 1, floorY: 420, crystalX: 450, crystalY: 400
 
 function resizeCanvas() {
   const r = dom.stage.getBoundingClientRect();
-  view.dpr = Math.min(2, window.devicePixelRatio || 1);
+  view.dpr = PERF.low ? 1 : Math.min(2, window.devicePixelRatio || 1);
   view.w = Math.max(200, r.width); view.h = Math.max(200, r.height);
   dom.scene.width = Math.round(view.w * view.dpr);
   dom.scene.height = Math.round(view.h * view.dpr);
-  view.floorY = view.h * 0.72;
-  view.crystalX = view.w * 0.52;
+  view.narrow = view.w < 560;
+  view.floorY = view.h * (view.narrow ? 0.7 : 0.72);
+  view.crystalX = view.w * (view.narrow ? 0.56 : 0.52);
   view.crystalY = view.floorY - 10;
-  view.crystalR = clamp(Math.min(view.w, view.h) * 0.17, 60, 150);
+  view.crystalR = clamp(Math.min(view.w, view.h) * 0.19, 54, 150);
 }
 
 function drawScene(ctx, g, t) {
@@ -1464,7 +1473,7 @@ function drawScene(ctx, g, t) {
   if (tier > 0) { ctx.fillStyle = rgba(tierCol, Math.min(0.07, 0.015 * tier)); ctx.fillRect(0, 0, W, H); }
   // drifting binary — denser as the numbers grow
   ctx.font = font(9); ctx.textAlign = 'center';
-  const bins = 14 + Math.min(26, tier * 3);
+  const bins = PERF.low ? 8 : (view.narrow ? 10 : 14) + Math.min(26, tier * 3);
   for (let i = 0; i < bins; i++) {
     const bx = (hash2(i, 7) * W + t * (6 + i)) % (W + 40) - 20;
     const by = hash2(i, 13) * view.floorY * 0.85;
@@ -1659,16 +1668,18 @@ function drawHero(ctx, g, t) {
 function drawStations(ctx, g, t) {
   const owned = BUILDINGS.filter(b => g.s.bld[b.id] > 0);
   if (!owned.length) return;
-  const show = owned.slice(-8);   // most advanced 8
+  const maxShow = view.narrow ? 5 : 8;    // phones get the 5 most advanced, roomy
+  const show = owned.slice(-maxShow);
   const W = view.w;
-  const y0 = view.floorY + (view.h - view.floorY) * 0.55;
+  const y0 = view.floorY + (view.h - view.floorY) * 0.52;
   const n = show.length;
+  const spread = view.narrow ? 0.16 : 0.105;
   for (let i = 0; i < n; i++) {
     const b = show[i];
-    const x = W * (0.5 + (i - (n - 1) / 2) * clamp(0.105, 0.07, 0.12));
+    const x = W * (0.5 + (i - (n - 1) / 2) * spread);
     const bob = Math.sin(t * 2 + i * 1.3) * 3;
     const ic = iconCanvas(b.id, 64);
-    const sz = clamp(W * 0.045, 30, 48);
+    const sz = clamp(W * (view.narrow ? 0.085 : 0.045), 30, 48);
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.drawImage(ic, x - sz / 2, y0 - sz + bob, sz, sz);
@@ -2018,6 +2029,14 @@ function boot() {
   function frame(now) {
     let dt = Math.min(0.1, (now - last) / 1000);
     last = now;
+    // adaptive quality: if sustained frame time is poor, switch to the light scene once
+    if (!PERF.low && dt < 0.09) {
+      PERF.acc += dt; PERF.n++;
+      if (PERF.n >= 120) {
+        if (PERF.acc / PERF.n > 0.04) { PERF.low = true; resizeCanvas(); }
+        PERF.acc = 0; PERF.n = 0;
+      }
+    }
     g.tick(dt);
     if (g.shopDirty) { g.shopDirty = false; rebuildShop(g); }
     hudT -= dt;
