@@ -859,8 +859,13 @@ class Game {
       if (u.type === 'bld' && u.bld === id) m *= u.mult;
       if (u.type === 'bosses' && ['firewall', 'glitch', 'trojan', 'botnet'].includes(id)) m *= 2;
     }
+    // FREE milestone bonus: each building doubles its own output every 50 you own,
+    // so stacking a building keeps paying off and income keeps pace with your bank.
+    m *= Math.pow(2, Math.floor(this.s.bld[id] / 50));
     return m;
   }
+  /** How many more of this building until its next free ×2 milestone. */
+  bldToNextMilestone(id) { return 50 - (this.s.bld[id] % 50); }
   globalMult() {
     let m = 1;
     for (const u of this.UPGRADES) if (this.s.ups[u.id] && u.type === 'global') m *= u.mult;
@@ -902,12 +907,12 @@ class Game {
   bldPrice(b, n = 1) {
     const owned = this.s.bld[b.id];
     // geometric sum: base * 1.15^owned * (1.15^n - 1) / 0.15
-    return Math.ceil(b.cost * Math.pow(1.12, owned) * (Math.pow(1.12, n) - 1) / 0.12);
+    return Math.ceil(b.cost * Math.pow(1.11, owned) * (Math.pow(1.11, n) - 1) / 0.11);
   }
   maxBuyable(b) {
     const owned = this.s.bld[b.id];
-    const unit = b.cost * Math.pow(1.12, owned);
-    return Math.max(0, Math.floor(Math.log(1 + this.s.crystals * 0.12 / unit) / Math.log(1.12)));
+    const unit = b.cost * Math.pow(1.11, owned);
+    return Math.max(0, Math.floor(Math.log(1 + this.s.crystals * 0.11 / unit) / Math.log(1.11)));
   }
   buyCount(b) {   // how many the current buy-amount setting means for this building
     return this.s.buyAmt === 'max' ? Math.max(1, this.maxBuyable(b)) : this.s.buyAmt;
@@ -1894,8 +1899,11 @@ function rebuildShop(g) {
         const prodTxt = !owned2 ? ''
           : b.clickRate ? ' · ' + fmtRate(b.clickRate * owned2 * g.bldMult(b.id)) + ' auto-clicks/sec (' + fmtRate(b.clickRate * owned2 * g.bldMult(b.id) * g.cpc) + ' /sec)'
           : ' · producing ' + fmtRate(b.cps * owned2 * g.bldMult(b.id) * g.globalMult()) + ' /sec';
+        const lvl = Math.floor(owned2 / 50);
+        const mile = lvl > 0 ? `<div class="info">★ Bonus ×${fmt(Math.pow(2, lvl))} for owning ${lvl * 50}+</div>` : '';
+        const nextMile = `<div class="clicktag">${g.bldToNextMilestone(b.id)} more → ×2 output!</div>`;
         return `<h4>${b.name}</h4><div class="flavor">“${b.flavor}”</div>` +
-          `<div class="info">Owned: ${owned2}${prodTxt}</div>` +
+          `<div class="info">Owned: ${owned2}${prodTxt}</div>` + mile + nextMile +
           `<div class="price${s.crystals >= pp ? '' : ' no'}">💎 ${fmt(pp)} for ${fmt(nn)}</div>`;
       });
     }
